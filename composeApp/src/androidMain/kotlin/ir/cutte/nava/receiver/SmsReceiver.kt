@@ -11,8 +11,12 @@ import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.engine.HttpDispatcher
 import ir.cutte.nava.engine.MessageMatcher
 import ir.cutte.nava.engine.SenderNormalizer
+import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.SmsPayload
+import ir.cutte.nava.util.BatteryUtil
+import ir.cutte.nava.util.NetworkUtil
+import ir.cutte.nava.worker.SmsDispatchWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,6 +90,7 @@ class SmsReceiver : BroadcastReceiver() {
                     return@launch
                 }
 
+                val batteryStatus = BatteryUtil.getBatteryStatus(context)
                 val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
                 val deviceInfo = "$manufacturer ${Build.MODEL}"
 
@@ -95,26 +100,61 @@ class SmsReceiver : BroadcastReceiver() {
                     timestamp = timestamp,
                     simSlot = simSlot,
                     matchedKeyword = matchResult.matchedKeyword,
-                    deviceInfo = deviceInfo
+                    deviceInfo = deviceInfo,
+                    batteryLevel = batteryStatus.batteryLevel,
+                    isCharging = batteryStatus.isCharging
                 )
 
-                val dispatcher = HttpDispatcher()
-                val dispatchResult = dispatcher.dispatch(settings.workerUrl, payload)
-
+                val activityId = UUID.randomUUID().toString()
                 val normalizedSender = SenderNormalizer.normalize(rawSender)
                 val snippet = if (fullBody.length > 60) fullBody.take(60) + "..." else fullBody
+                val isConnected = NetworkUtil.isOnline(context)
 
-                val activity = ForwardingActivity(
-                    id = UUID.randomUUID().toString(),
+                if (isConnected) {
+                    val dispatcher = HttpDispatcher()
+                    val dispatchResult = dispatcher.dispatchWithFailover(
+                        primaryUrl = settings.primaryWorkerUrl,
+                        secondaryUrl = settings.secondaryWorkerUrl,
+                        authToken = settings.authToken,
+                        payload = payload
+                    )
+
+                    if (dispatchResult.isSuccess) {
+                        val activity = ForwardingActivity(
+                            id = activityId,
+                            timestamp = timestamp,
+                            normalizedSender = normalizedSender,
+                            matchedKeyword = matchResult.matchedKeyword,
+                            httpStatusCode = dispatchResult.statusCode,
+                            isSuccess = true,
+                            snippet = snippet,
+                            deliveryStatus = DeliveryStatus.DISPATCHED_INSTANT
+                        )
+                        repository.recordActivity(activity)
+                        return@launch
+                    }
+                }
+
+                SmsDispatchWorker.enqueue(
+                    context = context.applicationContext,
+                    activityId = activityId,
+                    primaryUrl = settings.primaryWorkerUrl,
+                    secondaryUrl = settings.secondaryWorkerUrl,
+                    authToken = settings.authToken,
+                    payload = payload
+                )
+
+                val queuedActivity = ForwardingActivity(
+                    id = activityId,
                     timestamp = timestamp,
                     normalizedSender = normalizedSender,
                     matchedKeyword = matchResult.matchedKeyword,
-                    httpStatusCode = dispatchResult.statusCode,
-                    isSuccess = dispatchResult.isSuccess,
-                    snippet = snippet
+                    httpStatusCode = 0,
+                    isSuccess = false,
+                    snippet = snippet,
+                    deliveryStatus = DeliveryStatus.QUEUED_OFFLINE
                 )
-
-                repository.recordActivity(activity)
+                repository.recordActivity(queuedActivity)
             } finally {
                 pendingResult.finish()
             }

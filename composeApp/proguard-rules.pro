@@ -14,6 +14,8 @@
 -keep class ir.cutte.nava.model.** { *; }
 -keep class ir.cutte.nava.receiver.** { *; }
 -keep class ir.cutte.nava.service.** { *; }
+-keep class ir.cutte.nava.worker.** { *; }
+-keep class androidx.work.** { *; }
 
 -dontwarn io.ktor.**
 -keep class io.ktor.** { *; }

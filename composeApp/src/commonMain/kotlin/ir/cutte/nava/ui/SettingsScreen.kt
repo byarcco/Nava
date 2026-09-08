@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,7 +22,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -50,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import ir.cutte.nava.model.DispatchResult
 import ir.cutte.nava.ui.theme.NavaError
 import ir.cutte.nava.ui.theme.NavaOnPrimary
-import ir.cutte.nava.ui.theme.NavaOnTertiary
 import ir.cutte.nava.ui.theme.NavaOutline
 import ir.cutte.nava.ui.theme.NavaPrimary
 import ir.cutte.nava.ui.theme.NavaSecondary
@@ -62,21 +59,29 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
-    workerUrl: String,
+    primaryWorkerUrl: String,
+    secondaryWorkerUrl: String,
+    authToken: String,
     whitelistSenders: Set<String>,
     keywords: Set<String>,
     isServiceEnabled: Boolean,
-    onUpdateWorkerUrl: (String) -> Unit,
+    isHeartbeatEnabled: Boolean,
+    onUpdatePrimaryWorkerUrl: (String) -> Unit,
+    onUpdateSecondaryWorkerUrl: (String) -> Unit,
+    onUpdateAuthToken: (String) -> Unit,
     onAddWhitelist: (String) -> Unit,
     onRemoveWhitelist: (String) -> Unit,
     onAddKeyword: (String) -> Unit,
     onRemoveKeyword: (String) -> Unit,
     onToggleService: (Boolean) -> Unit,
+    onToggleHeartbeat: (Boolean) -> Unit,
     onDispatchTestPayload: suspend () -> DispatchResult,
     onNavigateBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var urlInput by remember(workerUrl) { mutableStateOf(workerUrl) }
+    var primaryUrlInput by remember(primaryWorkerUrl) { mutableStateOf(primaryWorkerUrl) }
+    var secondaryUrlInput by remember(secondaryWorkerUrl) { mutableStateOf(secondaryWorkerUrl) }
+    var tokenInput by remember(authToken) { mutableStateOf(authToken) }
     var senderInput by remember { mutableStateOf("") }
     var keywordInput by remember { mutableStateOf("") }
 
@@ -126,34 +131,65 @@ fun SettingsScreen(
                         containerColor = NavaSurfaceVariant
                     )
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = "Service Operational Switch",
-                                fontWeight = FontWeight.Bold,
-                                color = NavaPrimary,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                text = "Enable or suspend automated ingestion",
-                                fontSize = 12.sp,
-                                color = NavaSecondary
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "SMS Ingestion Engine",
+                                    fontWeight = FontWeight.Bold,
+                                    color = NavaPrimary,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Enable automated background message capture",
+                                    fontSize = 12.sp,
+                                    color = NavaSecondary
+                                )
+                            }
+                            Switch(
+                                checked = isServiceEnabled,
+                                onCheckedChange = onToggleService,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = NavaPrimary,
+                                    checkedTrackColor = NavaTertiary
+                                )
                             )
                         }
-                        Switch(
-                            checked = isServiceEnabled,
-                            onCheckedChange = onToggleService,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = NavaPrimary,
-                                checkedTrackColor = NavaTertiary
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Periodic Telemetry Heartbeat",
+                                    fontWeight = FontWeight.Bold,
+                                    color = NavaPrimary,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Probes cloud worker health every 30 minutes",
+                                    fontSize = 12.sp,
+                                    color = NavaSecondary
+                                )
+                            }
+                            Switch(
+                                checked = isHeartbeatEnabled,
+                                onCheckedChange = onToggleHeartbeat,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = NavaPrimary,
+                                    checkedTrackColor = NavaTertiary
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -171,14 +207,21 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Worker Endpoint URL",
+                            text = "Dual-Endpoint Failover Architecture",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = NavaPrimary
                         )
+
+                        Text(
+                            text = "Primary Target (Custom Domain)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = NavaSecondary
+                        )
                         OutlinedTextField(
-                            value = urlInput,
-                            onValueChange = { urlInput = it },
+                            value = primaryUrlInput,
+                            onValueChange = { primaryUrlInput = it },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(10.dp),
@@ -189,19 +232,65 @@ fun SettingsScreen(
                                 unfocusedTextColor = NavaPrimary
                             )
                         )
+
+                        Text(
+                            text = "Secondary Failover Target (Workers.dev)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = NavaSecondary
+                        )
+                        OutlinedTextField(
+                            value = secondaryUrlInput,
+                            onValueChange = { secondaryUrlInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NavaPrimary,
+                                unfocusedBorderColor = NavaOutline,
+                                focusedTextColor = NavaPrimary,
+                                unfocusedTextColor = NavaPrimary
+                            )
+                        )
+
+                        Text(
+                            text = "Bearer Authorization Secret Token",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = NavaSecondary
+                        )
+                        OutlinedTextField(
+                            value = tokenInput,
+                            onValueChange = { tokenInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("Optional shared secret") },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = NavaPrimary,
+                                unfocusedBorderColor = NavaOutline,
+                                focusedTextColor = NavaPrimary,
+                                unfocusedTextColor = NavaPrimary
+                            )
+                        )
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.End
                         ) {
                             Button(
-                                onClick = { onUpdateWorkerUrl(urlInput) },
+                                onClick = {
+                                    onUpdatePrimaryWorkerUrl(primaryUrlInput)
+                                    onUpdateSecondaryWorkerUrl(secondaryUrlInput)
+                                    onUpdateAuthToken(tokenInput)
+                                },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NavaPrimary,
                                     contentColor = NavaOnPrimary
                                 )
                             ) {
-                                Text("Save Endpoint", fontWeight = FontWeight.SemiBold)
+                                Text("Save Endpoints & Secret", fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -227,7 +316,7 @@ fun SettingsScreen(
                             color = NavaPrimary
                         )
                         Text(
-                            text = "Emulate an incoming SMS transmission to verify endpoint connectivity",
+                            text = "Dispatches an active test payload testing failover resilience",
                             fontSize = 12.sp,
                             color = NavaSecondary
                         )

@@ -23,7 +23,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -41,7 +40,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.ForwardingActivity
+import ir.cutte.nava.model.ProbeStatus
 import ir.cutte.nava.ui.theme.NavaError
 import ir.cutte.nava.ui.theme.NavaOnPrimary
 import ir.cutte.nava.ui.theme.NavaOnTertiary
@@ -55,6 +56,9 @@ import ir.cutte.nava.ui.theme.NavaTertiary
 @Composable
 fun DashboardScreen(
     isServiceEnabled: Boolean,
+    probeStatus: ProbeStatus,
+    batteryLevel: Int,
+    isCharging: Boolean,
     uptimeText: String,
     totalDispatchedCount: Long,
     hasSmsPermission: Boolean,
@@ -118,9 +122,11 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 ServiceStatusBanner(
                     isServiceEnabled = isServiceEnabled,
+                    probeStatus = probeStatus,
+                    batteryLevel = batteryLevel,
+                    isCharging = isCharging,
                     uptimeText = uptimeText,
                     totalDispatchedCount = totalDispatchedCount,
-                    isHealthy = hasSmsPermission && hasNotificationPermission && isBatteryOptimizationIgnored,
                     onToggleService = onToggleService
                 )
             }
@@ -221,9 +227,11 @@ fun DashboardScreen(
 @Composable
 private fun ServiceStatusBanner(
     isServiceEnabled: Boolean,
+    probeStatus: ProbeStatus,
+    batteryLevel: Int,
+    isCharging: Boolean,
     uptimeText: String,
     totalDispatchedCount: Long,
-    isHealthy: Boolean,
     onToggleService: (Boolean) -> Unit
 ) {
     Card(
@@ -235,7 +243,7 @@ private fun ServiceStatusBanner(
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -253,8 +261,10 @@ private fun ServiceStatusBanner(
                             .background(
                                 when {
                                     !isServiceEnabled -> NavaError
-                                    isHealthy -> NavaSuccess
-                                    else -> NavaTertiary
+                                    probeStatus == ProbeStatus.CONNECTED_PRIMARY -> NavaSuccess
+                                    probeStatus == ProbeStatus.CONNECTED_BACKUP -> NavaTertiary
+                                    probeStatus == ProbeStatus.INTERNET_ONLY -> Color(0xFFF59E0B)
+                                    else -> NavaError
                                 }
                             )
                     )
@@ -276,6 +286,45 @@ private fun ServiceStatusBanner(
                         uncheckedTrackColor = NavaSurfaceVariant
                     )
                 )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = when (probeStatus) {
+                    ProbeStatus.CONNECTED_PRIMARY -> NavaSuccess.copy(alpha = 0.25f)
+                    ProbeStatus.CONNECTED_BACKUP -> NavaTertiary.copy(alpha = 0.35f)
+                    ProbeStatus.INTERNET_ONLY -> Color(0xFFF59E0B).copy(alpha = 0.25f)
+                    ProbeStatus.OFFLINE -> NavaError.copy(alpha = 0.25f)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = when (probeStatus) {
+                            ProbeStatus.CONNECTED_PRIMARY -> "PRIMARY CLOUD (CUSTOM DOMAIN)"
+                            ProbeStatus.CONNECTED_BACKUP -> "FAILOVER CLOUD (WORKERS.DEV)"
+                            ProbeStatus.INTERNET_ONLY -> "INTERNET ONLY (WORKERS DOWN)"
+                            ProbeStatus.OFFLINE -> "NETWORK OFFLINE"
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = NavaOnPrimary
+                    )
+
+                    if (batteryLevel >= 0) {
+                        Text(
+                            text = "${batteryLevel}%" + if (isCharging) " (CHARGING)" else "",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NavaTertiary
+                        )
+                    }
+                }
             }
 
             Row(
@@ -480,18 +529,50 @@ private fun ActivityItemCard(activity: ForwardingActivity) {
                     color = NavaPrimary,
                     fontFamily = FontFamily.Monospace
                 )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (activity.isSuccess) NavaSuccess.copy(alpha = 0.2f) else NavaError.copy(alpha = 0.2f)
-                ) {
-                    Text(
-                        text = if (activity.httpStatusCode > 0) "HTTP ${activity.httpStatusCode}" else "FAILED",
-                        color = if (activity.isSuccess) NavaSuccess else NavaError,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = when (activity.deliveryStatus) {
+                            DeliveryStatus.DISPATCHED_INSTANT -> NavaSuccess.copy(alpha = 0.2f)
+                            DeliveryStatus.DISPATCHED_REPLAYED -> NavaTertiary.copy(alpha = 0.35f)
+                            DeliveryStatus.QUEUED_OFFLINE -> Color(0xFFF59E0B).copy(alpha = 0.2f)
+                            DeliveryStatus.FAILED_EXPIRED -> NavaError.copy(alpha = 0.2f)
+                        }
+                    ) {
+                        Text(
+                            text = when (activity.deliveryStatus) {
+                                DeliveryStatus.DISPATCHED_INSTANT -> "INSTANT"
+                                DeliveryStatus.DISPATCHED_REPLAYED -> "REPLAYED"
+                                DeliveryStatus.QUEUED_OFFLINE -> "QUEUED (OFFLINE)"
+                                DeliveryStatus.FAILED_EXPIRED -> "EXPIRED (>15m)"
+                            },
+                            color = when (activity.deliveryStatus) {
+                                DeliveryStatus.DISPATCHED_INSTANT -> NavaSuccess
+                                DeliveryStatus.DISPATCHED_REPLAYED -> NavaOnTertiary
+                                DeliveryStatus.QUEUED_OFFLINE -> Color(0xFFB45309)
+                                DeliveryStatus.FAILED_EXPIRED -> NavaError
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    if (activity.httpStatusCode > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (activity.isSuccess) NavaSuccess.copy(alpha = 0.2f) else NavaError.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                text = "HTTP ${activity.httpStatusCode}",
+                                color = if (activity.isSuccess) NavaSuccess else NavaError,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                 }
             }
 

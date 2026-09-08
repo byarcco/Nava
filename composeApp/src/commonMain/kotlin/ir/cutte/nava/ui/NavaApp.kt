@@ -9,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.model.AppSettings
+import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.DispatchResult
 import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.SmsPayload
@@ -29,13 +30,16 @@ fun NavaApp(
     hasNotificationPermission: Boolean,
     isBatteryOptimizationIgnored: Boolean,
     isForegroundRunning: Boolean,
+    batteryLevel: Int,
+    isCharging: Boolean,
     deviceInfo: String,
     onRequestSmsPermission: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onRequestBatteryOptimization: () -> Unit,
     onLaunchOemAutostart: () -> Unit,
     onToggleForegroundService: () -> Unit,
-    onDispatchTestPayload: suspend (String, SmsPayload) -> DispatchResult
+    onToggleHeartbeatScheduler: (Boolean) -> Unit,
+    onDispatchTestPayload: suspend (String, String, String, SmsPayload) -> DispatchResult
 ) {
     val coroutineScope = rememberCoroutineScope()
     val appSettings by settingsRepository.settingsFlow.collectAsState(initial = AppSettings())
@@ -57,6 +61,9 @@ fun NavaApp(
             NavaScreen.Dashboard -> {
                 DashboardScreen(
                     isServiceEnabled = appSettings.isServiceEnabled,
+                    probeStatus = appSettings.lastProbeStatus,
+                    batteryLevel = batteryLevel,
+                    isCharging = isCharging,
                     uptimeText = uptimeText,
                     totalDispatchedCount = appSettings.totalDispatchedCount,
                     hasSmsPermission = hasSmsPermission,
@@ -79,13 +86,26 @@ fun NavaApp(
             }
             NavaScreen.Settings -> {
                 SettingsScreen(
-                    workerUrl = appSettings.workerUrl,
+                    primaryWorkerUrl = appSettings.primaryWorkerUrl,
+                    secondaryWorkerUrl = appSettings.secondaryWorkerUrl,
+                    authToken = appSettings.authToken,
                     whitelistSenders = appSettings.whitelistSenders,
                     keywords = appSettings.keywords,
                     isServiceEnabled = appSettings.isServiceEnabled,
-                    onUpdateWorkerUrl = { url ->
+                    isHeartbeatEnabled = appSettings.isHeartbeatEnabled,
+                    onUpdatePrimaryWorkerUrl = { url ->
                         coroutineScope.launch {
-                            settingsRepository.updateWorkerUrl(url)
+                            settingsRepository.updatePrimaryWorkerUrl(url)
+                        }
+                    },
+                    onUpdateSecondaryWorkerUrl = { url ->
+                        coroutineScope.launch {
+                            settingsRepository.updateSecondaryWorkerUrl(url)
+                        }
+                    },
+                    onUpdateAuthToken = { token ->
+                        coroutineScope.launch {
+                            settingsRepository.updateAuthToken(token)
                         }
                     },
                     onAddWhitelist = { sender ->
@@ -113,16 +133,29 @@ fun NavaApp(
                             settingsRepository.setServiceEnabled(enabled)
                         }
                     },
+                    onToggleHeartbeat = { enabled ->
+                        coroutineScope.launch {
+                            settingsRepository.setHeartbeatEnabled(enabled)
+                            onToggleHeartbeatScheduler(enabled)
+                        }
+                    },
                     onDispatchTestPayload = {
                         val testPayload = SmsPayload(
                             sender = "TEST_SENDER",
-                            body = "Test incoming SMS payload for worker endpoint verification",
+                            body = "Test incoming SMS payload with failover verification",
                             timestamp = currentTimeMillis(),
                             simSlot = 0,
                             matchedKeyword = "DIAGNOSTIC",
-                            deviceInfo = deviceInfo
+                            deviceInfo = deviceInfo,
+                            batteryLevel = batteryLevel,
+                            isCharging = isCharging
                         )
-                        val result = onDispatchTestPayload(appSettings.workerUrl, testPayload)
+                        val result = onDispatchTestPayload(
+                            appSettings.primaryWorkerUrl,
+                            appSettings.secondaryWorkerUrl,
+                            appSettings.authToken,
+                            testPayload
+                        )
                         val activity = ForwardingActivity(
                             id = "${currentTimeMillis()}_${Random.nextInt(1000, 9999)}",
                             timestamp = testPayload.timestamp,
@@ -130,7 +163,8 @@ fun NavaApp(
                             matchedKeyword = "DIAGNOSTIC",
                             httpStatusCode = result.statusCode,
                             isSuccess = result.isSuccess,
-                            snippet = testPayload.body
+                            snippet = testPayload.body,
+                            deliveryStatus = if (result.isSuccess) DeliveryStatus.DISPATCHED_INSTANT else DeliveryStatus.QUEUED_OFFLINE
                         )
                         settingsRepository.recordActivity(activity)
                         result

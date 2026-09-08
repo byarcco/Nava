@@ -9,5 +9,7 @@ data class SmsPayload(
     val timestamp: Long,
     val simSlot: Int,
     val matchedKeyword: String?,
-    val deviceInfo: String
+    val deviceInfo: String,
+    val batteryLevel: Int = -1,
+    val isCharging: Boolean = false
 )

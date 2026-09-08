@@ -6,6 +6,7 @@ import android.content.Intent
 import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.service.NavaForegroundService
+import ir.cutte.nava.worker.HeartbeatScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +29,9 @@ class BootReceiver : BroadcastReceiver() {
                 val settings = repository.getSnapshot()
                 if (settings.isServiceEnabled) {
                     NavaForegroundService.start(context.applicationContext)
+                }
+                if (settings.isHeartbeatEnabled) {
+                    HeartbeatScheduler.schedule(context.applicationContext)
                 }
             } finally {
                 pendingResult.finish()

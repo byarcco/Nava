@@ -4,10 +4,15 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppSettings(
-    val workerUrl: String = "https://sms.cutte.ir",
+    val primaryWorkerUrl: String = "https://sms.cutte.ir",
+    val secondaryWorkerUrl: String = "https://sms-pipeline.imartrioss.workers.dev",
+    val authToken: String = "",
     val whitelistSenders: Set<String> = emptySet(),
     val keywords: Set<String> = setOf("کد ورود"),
     val isServiceEnabled: Boolean = true,
+    val isHeartbeatEnabled: Boolean = true,
+    val lastProbeStatus: ProbeStatus = ProbeStatus.CONNECTED_PRIMARY,
+    val lastProbeTimestamp: Long = 0L,
     val totalDispatchedCount: Long = 0L,
     val serviceStartTimestamp: Long = 0L,
     val recentActivities: List<ForwardingActivity> = emptyList()

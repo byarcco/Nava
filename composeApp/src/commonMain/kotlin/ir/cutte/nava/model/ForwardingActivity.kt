@@ -10,5 +10,6 @@ data class ForwardingActivity(
     val matchedKeyword: String?,
     val httpStatusCode: Int,
     val isSuccess: Boolean,
-    val snippet: String
+    val snippet: String,
+    val deliveryStatus: DeliveryStatus = DeliveryStatus.DISPATCHED_INSTANT
 )

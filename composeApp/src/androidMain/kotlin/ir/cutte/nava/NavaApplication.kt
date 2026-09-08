@@ -5,6 +5,7 @@ import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.service.NavaForegroundService
 import ir.cutte.nava.util.PermissionHelper
+import ir.cutte.nava.worker.HeartbeatScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,12 @@ class NavaApplication : Application() {
             if (settings.isServiceEnabled && PermissionHelper.hasForegroundServicePermission(this@NavaApplication)) {
                 try {
                     NavaForegroundService.start(this@NavaApplication)
+                } catch (ignored: Exception) {
+                }
+            }
+            if (settings.isHeartbeatEnabled) {
+                try {
+                    HeartbeatScheduler.schedule(this@NavaApplication)
                 } catch (ignored: Exception) {
                 }
             }

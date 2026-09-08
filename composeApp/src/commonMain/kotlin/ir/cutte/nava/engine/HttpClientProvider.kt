@@ -1,6 +1,7 @@
 package ir.cutte.nava.engine
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -15,6 +16,11 @@ object HttpClientProvider {
                     isLenient = true
                     encodeDefaults = true
                 })
+            }
+            install(HttpTimeout) {
+                connectTimeoutMillis = 5000L
+                requestTimeoutMillis = 8000L
+                socketTimeoutMillis = 8000L
             }
         }
     }

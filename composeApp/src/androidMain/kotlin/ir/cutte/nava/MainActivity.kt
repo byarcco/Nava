@@ -21,8 +21,10 @@ import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.engine.HttpDispatcher
 import ir.cutte.nava.service.NavaForegroundService
 import ir.cutte.nava.ui.NavaApp
+import ir.cutte.nava.util.BatteryUtil
 import ir.cutte.nava.util.OemIntentNavigator
 import ir.cutte.nava.util.PermissionHelper
+import ir.cutte.nava.worker.HeartbeatScheduler
 
 class MainActivity : ComponentActivity() {
 
@@ -48,6 +50,9 @@ class MainActivity : ComponentActivity() {
             var isForegroundRunning by remember {
                 mutableStateOf(PermissionHelper.hasForegroundServicePermission(this@MainActivity))
             }
+            var batteryStatus by remember {
+                mutableStateOf(BatteryUtil.getBatteryStatus(this@MainActivity))
+            }
 
             val smsPermissionLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -71,6 +76,7 @@ class MainActivity : ComponentActivity() {
                         hasNotificationPermission = PermissionHelper.hasNotificationPermission(this@MainActivity)
                         isBatteryOptimizationIgnored = PermissionHelper.isBatteryOptimizationIgnored(this@MainActivity)
                         isForegroundRunning = PermissionHelper.hasForegroundServicePermission(this@MainActivity)
+                        batteryStatus = BatteryUtil.getBatteryStatus(this@MainActivity)
                     }
                 }
                 lifecycleOwner.lifecycle.addObserver(observer)
@@ -85,6 +91,8 @@ class MainActivity : ComponentActivity() {
                 hasNotificationPermission = hasNotificationPermission,
                 isBatteryOptimizationIgnored = isBatteryOptimizationIgnored,
                 isForegroundRunning = isForegroundRunning,
+                batteryLevel = batteryStatus.batteryLevel,
+                isCharging = batteryStatus.isCharging,
                 deviceInfo = deviceInfo,
                 onRequestSmsPermission = {
                     smsPermissionLauncher.launch(
@@ -111,8 +119,20 @@ class MainActivity : ComponentActivity() {
                         isForegroundRunning = true
                     }
                 },
-                onDispatchTestPayload = { endpointUrl, payload ->
-                    httpDispatcher.dispatch(endpointUrl, payload)
+                onToggleHeartbeatScheduler = { enabled ->
+                    if (enabled) {
+                        HeartbeatScheduler.schedule(this@MainActivity)
+                    } else {
+                        HeartbeatScheduler.cancel(this@MainActivity)
+                    }
+                },
+                onDispatchTestPayload = { primaryUrl, secondaryUrl, authToken, payload ->
+                    httpDispatcher.dispatchWithFailover(
+                        primaryUrl = primaryUrl,
+                        secondaryUrl = secondaryUrl,
+                        authToken = authToken,
+                        payload = payload
+                    )
                 }
             )
         }

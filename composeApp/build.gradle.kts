@@ -20,6 +20,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.work.runtime)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.compose.uiTooling)
