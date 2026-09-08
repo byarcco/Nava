@@ -48,7 +48,7 @@ class SettingsRepository(
         .map { preferences ->
             val primaryUrl = preferences[primaryWorkerUrlKey] ?: "https://sms.cutte.ir"
             val secondaryUrl = preferences[secondaryWorkerUrlKey] ?: "https://sms-pipeline.imartrioss.workers.dev"
-            val authToken = preferences[authTokenKey] ?: ""
+            val authToken = preferences[authTokenKey] ?: "85d8ecf6-5641-451a-a41d-20927eeccd28"
             val whitelist = preferences[whitelistKey] ?: emptySet()
             val keywords = preferences[keywordsKey] ?: setOf("کد ورود")
             val isEnabled = preferences[serviceEnabledKey] ?: true

@@ -19,12 +19,15 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.engine.HttpDispatcher
+import ir.cutte.nava.engine.SmsIngestionProcessor
 import ir.cutte.nava.service.NavaForegroundService
 import ir.cutte.nava.ui.NavaApp
 import ir.cutte.nava.util.BatteryUtil
+import ir.cutte.nava.util.NetworkUtil
 import ir.cutte.nava.util.OemIntentNavigator
 import ir.cutte.nava.util.PermissionHelper
 import ir.cutte.nava.worker.HeartbeatScheduler
+import ir.cutte.nava.worker.SmsDispatchWorker
 
 class MainActivity : ComponentActivity() {
 
@@ -125,6 +128,31 @@ class MainActivity : ComponentActivity() {
                     } else {
                         HeartbeatScheduler.cancel(this@MainActivity)
                     }
+                },
+                onSimulateSms = { sender, body ->
+                    val settings = settingsRepository.getSnapshot()
+                    val isOnline = NetworkUtil.isOnline(this@MainActivity)
+                    val processor = SmsIngestionProcessor(settingsRepository, httpDispatcher)
+                    processor.processIncoming(
+                        settings = settings,
+                        rawSender = sender,
+                        body = body,
+                        simSlot = 0,
+                        batteryLevel = batteryStatus.batteryLevel,
+                        isCharging = batteryStatus.isCharging,
+                        deviceInfo = deviceInfo,
+                        isOnline = isOnline,
+                        onEnqueueWorker = { activityId, payload ->
+                            SmsDispatchWorker.enqueue(
+                                context = applicationContext,
+                                activityId = activityId,
+                                primaryUrl = settings.primaryWorkerUrl,
+                                secondaryUrl = settings.secondaryWorkerUrl,
+                                authToken = settings.authToken,
+                                payload = payload
+                            )
+                        }
+                    )
                 },
                 onDispatchTestPayload = { primaryUrl, secondaryUrl, authToken, payload ->
                     httpDispatcher.dispatchWithFailover(

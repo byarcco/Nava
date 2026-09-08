@@ -1,5 +1,6 @@
 package ir.cutte.nava.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -20,18 +20,27 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,17 +49,20 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ir.cutte.nava.engine.IngestionOutcome
 import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.ProbeStatus
 import ir.cutte.nava.ui.theme.NavaError
 import ir.cutte.nava.ui.theme.NavaOnPrimary
 import ir.cutte.nava.ui.theme.NavaOnTertiary
+import ir.cutte.nava.ui.theme.NavaOutline
 import ir.cutte.nava.ui.theme.NavaPrimary
 import ir.cutte.nava.ui.theme.NavaSecondary
 import ir.cutte.nava.ui.theme.NavaSuccess
 import ir.cutte.nava.ui.theme.NavaSurfaceVariant
 import ir.cutte.nava.ui.theme.NavaTertiary
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,6 +84,7 @@ fun DashboardScreen(
     onRequestBatteryOptimization: () -> Unit,
     onLaunchOemAutostart: () -> Unit,
     onToggleForegroundService: () -> Unit,
+    onSimulateSms: suspend (String, String) -> IngestionOutcome,
     onNavigateToSettings: () -> Unit
 ) {
     Scaffold(
@@ -129,6 +142,10 @@ fun DashboardScreen(
                     totalDispatchedCount = totalDispatchedCount,
                     onToggleService = onToggleService
                 )
+            }
+
+            item {
+                DiagnosticSimulatorCard(onSimulateSms = onSimulateSms)
             }
 
             item {
@@ -219,6 +236,146 @@ fun DashboardScreen(
 
             item {
                 Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagnosticSimulatorCard(
+    onSimulateSms: suspend (String, String) -> IngestionOutcome
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var senderInput by remember { mutableStateOf("BANKMELLI") }
+    var bodyInput by remember { mutableStateOf("کد ورود شما: 123456") }
+    var isProcessing by remember { mutableStateOf(false) }
+    var simulationOutcome by remember { mutableStateOf<IngestionOutcome?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = NavaSurfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "SMS Ingestion Simulator",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = NavaPrimary
+                    )
+                    Text(
+                        text = "Pipe synthetic SMS directly into failover pipeline",
+                        fontSize = 12.sp,
+                        color = NavaSecondary
+                    )
+                }
+                TextButton(onClick = { isExpanded = !isExpanded }) {
+                    Text(
+                        text = if (isExpanded) "Hide" else "Expand",
+                        fontWeight = FontWeight.Bold,
+                        color = NavaPrimary
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = senderInput,
+                        onValueChange = { senderInput = it },
+                        label = { Text("Sender") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NavaPrimary,
+                            unfocusedBorderColor = NavaOutline
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = bodyInput,
+                        onValueChange = { bodyInput = it },
+                        label = { Text("Body") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 3,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = NavaPrimary,
+                            unfocusedBorderColor = NavaOutline
+                        )
+                    )
+
+                    Button(
+                        onClick = {
+                            if (!isProcessing && senderInput.isNotBlank() && bodyInput.isNotBlank()) {
+                                isProcessing = true
+                                simulationOutcome = null
+                                coroutineScope.launch {
+                                    val outcome = onSimulateSms(senderInput.trim(), bodyInput.trim())
+                                    simulationOutcome = outcome
+                                    isProcessing = false
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = !isProcessing,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NavaPrimary,
+                            contentColor = NavaOnPrimary
+                        )
+                    ) {
+                        if (isProcessing) {
+                            CircularProgressIndicator(
+                                color = NavaOnPrimary,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        } else {
+                            Text("Dispatch Test SMS", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    simulationOutcome?.let { outcome ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = when {
+                                outcome.isDispatched -> NavaSuccess.copy(alpha = 0.15f)
+                                outcome.isMatched -> Color(0xFFF59E0B).copy(alpha = 0.15f)
+                                else -> NavaError.copy(alpha = 0.15f)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = outcome.statusDescription,
+                                color = when {
+                                    outcome.isDispatched -> NavaSuccess
+                                    outcome.isMatched -> Color(0xFFB45309)
+                                    else -> NavaError
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

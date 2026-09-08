@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import ir.cutte.nava.data.SettingsRepository
+import ir.cutte.nava.engine.IngestionOutcome
 import ir.cutte.nava.model.AppSettings
 import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.DispatchResult
@@ -39,6 +40,7 @@ fun NavaApp(
     onLaunchOemAutostart: () -> Unit,
     onToggleForegroundService: () -> Unit,
     onToggleHeartbeatScheduler: (Boolean) -> Unit,
+    onSimulateSms: suspend (String, String) -> IngestionOutcome,
     onDispatchTestPayload: suspend (String, String, String, SmsPayload) -> DispatchResult
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -81,6 +83,7 @@ fun NavaApp(
                     onRequestBatteryOptimization = onRequestBatteryOptimization,
                     onLaunchOemAutostart = onLaunchOemAutostart,
                     onToggleForegroundService = onToggleForegroundService,
+                    onSimulateSms = onSimulateSms,
                     onNavigateToSettings = { currentScreen = NavaScreen.Settings }
                 )
             }
