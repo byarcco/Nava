@@ -14,13 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -55,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import ir.cutte.nava.engine.IngestionOutcome
 import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.ProbeStatus
+import ir.cutte.nava.ui.theme.AppIcons
 import ir.cutte.nava.ui.theme.NavaBackground
 import ir.cutte.nava.ui.theme.NavaError
 import ir.cutte.nava.ui.theme.NavaErrorContainer
@@ -67,6 +65,7 @@ import ir.cutte.nava.ui.theme.NavaOnSuccessContainer
 import ir.cutte.nava.ui.theme.NavaOnSurface
 import ir.cutte.nava.ui.theme.NavaOnSurfaceVariant
 import ir.cutte.nava.ui.theme.NavaOnWarningContainer
+import ir.cutte.nava.ui.theme.NavaOutlineVariant
 import ir.cutte.nava.ui.theme.NavaPrimary
 import ir.cutte.nava.ui.theme.NavaPrimaryContainer
 import ir.cutte.nava.ui.theme.NavaSecondary
@@ -132,7 +131,7 @@ fun DashboardScreen(
                             modifier = Modifier.size(44.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
+                                imageVector = AppIcons.Settings,
                                 contentDescription = "تنظیمات",
                                 tint = NavaOnSurfaceVariant,
                                 modifier = Modifier.size(22.dp)
@@ -320,7 +319,7 @@ private fun ServiceStatusOverviewCard(
                             .clip(CircleShape)
                             .background(
                                 when (probeStatus) {
-                                    ProbeStatus.CONNECTED_PRIMARY, ProbeStatus.CONNECTED_SECONDARY -> NavaSuccess
+                                    ProbeStatus.CONNECTED_PRIMARY, ProbeStatus.CONNECTED_BACKUP -> NavaSuccess
                                     ProbeStatus.INTERNET_ONLY -> NavaWarning
                                     ProbeStatus.OFFLINE -> NavaError
                                 }
@@ -329,7 +328,7 @@ private fun ServiceStatusOverviewCard(
                     Text(
                         text = when (probeStatus) {
                             ProbeStatus.CONNECTED_PRIMARY -> "متصل به سرور اصلی"
-                            ProbeStatus.CONNECTED_SECONDARY -> "متصل به سرور پشتیبان"
+                            ProbeStatus.CONNECTED_BACKUP -> "متصل به سرور پشتیبان"
                             ProbeStatus.INTERNET_ONLY -> "ارتباط با اینترنت برقرار است"
                             ProbeStatus.OFFLINE -> "عدم دسترسی به اینترنت"
                         },
@@ -821,13 +820,14 @@ private fun ActivityItemCard(activity: ForwardingActivity) {
                 lineHeight = 18.sp
             )
 
-            if (activity.matchedKeyword.isNotBlank()) {
+            val keyword = activity.matchedKeyword
+            if (!keyword.isNullOrBlank()) {
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = NavaPrimaryContainer
                 ) {
                     Text(
-                        text = "کلیدواژه: ${activity.matchedKeyword}",
+                        text = "کلیدواژه: $keyword",
                         color = NavaOnPrimaryContainer,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,

@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -52,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.cutte.nava.model.DispatchResult
+import ir.cutte.nava.ui.theme.AppIcons
 import ir.cutte.nava.ui.theme.NavaBackground
 import ir.cutte.nava.ui.theme.NavaErrorContainer
 import ir.cutte.nava.ui.theme.NavaOnBackground
@@ -128,7 +126,7 @@ fun SettingsScreen(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = AppIcons.ArrowForward,
                                 contentDescription = "بازگشت",
                                 tint = NavaOnSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
@@ -502,7 +500,7 @@ fun SettingsScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Close,
+                                                    imageVector = AppIcons.Close,
                                                     contentDescription = "حذف",
                                                     tint = NavaOnPrimaryContainer,
                                                     modifier = Modifier.size(12.dp)
@@ -612,7 +610,7 @@ fun SettingsScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Close,
+                                                    imageVector = AppIcons.Close,
                                                     contentDescription = "حذف",
                                                     tint = NavaOnSecondaryContainer,
                                                     modifier = Modifier.size(12.dp)
