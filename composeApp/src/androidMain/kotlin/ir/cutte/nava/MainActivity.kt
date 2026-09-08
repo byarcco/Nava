@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.engine.HttpDispatcher
@@ -23,11 +24,13 @@ import ir.cutte.nava.engine.SmsIngestionProcessor
 import ir.cutte.nava.service.NavaForegroundService
 import ir.cutte.nava.ui.NavaApp
 import ir.cutte.nava.util.BatteryUtil
+import ir.cutte.nava.util.DeviceIdentifierHelper
 import ir.cutte.nava.util.NetworkUtil
 import ir.cutte.nava.util.OemIntentNavigator
 import ir.cutte.nava.util.PermissionHelper
 import ir.cutte.nava.worker.HeartbeatScheduler
 import ir.cutte.nava.worker.SmsDispatchWorker
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -37,8 +40,13 @@ class MainActivity : ComponentActivity() {
 
         val settingsRepository = SettingsRepository(applicationContext.navaDataStore)
         val httpDispatcher = HttpDispatcher()
-        val manufacturer = Build.MANUFACTURER.replaceFirstChar { it.uppercase() }
-        val deviceInfo = "$manufacturer ${Build.MODEL}"
+        val hardwareId = DeviceIdentifierHelper.getHardwareDeviceId(this)
+        val defaultName = DeviceIdentifierHelper.getDefaultDeviceName()
+        val deviceInfo = defaultName
+
+        lifecycleScope.launch {
+            settingsRepository.ensureDeviceIdentification(hardwareId, defaultName)
+        }
 
         setContent {
             var hasSmsPermission by remember {
@@ -142,6 +150,7 @@ class MainActivity : ComponentActivity() {
                         isCharging = batteryStatus.isCharging,
                         deviceInfo = deviceInfo,
                         isOnline = isOnline,
+                        forceDispatch = true,
                         onEnqueueWorker = { activityId, payload ->
                             SmsDispatchWorker.enqueue(
                                 context = applicationContext,

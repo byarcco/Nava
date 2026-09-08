@@ -29,6 +29,7 @@ class SmsIngestionProcessor(
         isCharging: Boolean,
         deviceInfo: String,
         isOnline: Boolean,
+        forceDispatch: Boolean = false,
         onEnqueueWorker: (String, SmsPayload) -> Unit
     ): IngestionOutcome {
         val matchResult = MessageMatcher.match(
@@ -38,7 +39,7 @@ class SmsIngestionProcessor(
             keywords = settings.keywords
         )
 
-        if (!matchResult.isMatched) {
+        if (!matchResult.isMatched && !forceDispatch) {
             return IngestionOutcome(
                 isMatched = false,
                 isDispatched = false,
@@ -47,17 +48,25 @@ class SmsIngestionProcessor(
             )
         }
 
+        val effectiveKeyword = matchResult.matchedKeyword ?: "آزمایشی"
         val timestamp = currentTimeMillis()
         val activityId = "${timestamp}_${Random.nextInt(1000, 9999)}"
         val normalizedSender = SenderNormalizer.normalize(rawSender)
         val snippet = if (body.length > 60) body.take(60) + "..." else body
+        val code = OtpExtractor.extractCode(body)
+
+        val resolvedDeviceId = settings.deviceId.ifBlank { deviceInfo }
+        val resolvedDeviceName = settings.deviceName.ifBlank { deviceInfo }
 
         val payload = SmsPayload(
+            code = code,
+            timestamp = timestamp / 1000L,
+            deviceId = resolvedDeviceId,
+            deviceName = resolvedDeviceName,
             sender = rawSender,
             body = body,
-            timestamp = timestamp,
             simSlot = simSlot,
-            matchedKeyword = matchResult.matchedKeyword,
+            matchedKeyword = effectiveKeyword,
             deviceInfo = deviceInfo,
             batteryLevel = batteryLevel,
             isCharging = isCharging
@@ -71,18 +80,19 @@ class SmsIngestionProcessor(
                 payload = payload
             )
 
+            val activity = ForwardingActivity(
+                id = activityId,
+                timestamp = timestamp,
+                normalizedSender = if (normalizedSender.isNotBlank()) normalizedSender else rawSender,
+                matchedKeyword = effectiveKeyword,
+                httpStatusCode = dispatchResult.statusCode,
+                isSuccess = dispatchResult.isSuccess,
+                snippet = snippet,
+                deliveryStatus = if (dispatchResult.isSuccess) DeliveryStatus.DISPATCHED_INSTANT else DeliveryStatus.QUEUED_OFFLINE
+            )
+            repository.recordActivity(activity)
+
             if (dispatchResult.isSuccess) {
-                val activity = ForwardingActivity(
-                    id = activityId,
-                    timestamp = timestamp,
-                    normalizedSender = normalizedSender,
-                    matchedKeyword = matchResult.matchedKeyword,
-                    httpStatusCode = dispatchResult.statusCode,
-                    isSuccess = true,
-                    snippet = snippet,
-                    deliveryStatus = DeliveryStatus.DISPATCHED_INSTANT
-                )
-                repository.recordActivity(activity)
                 return IngestionOutcome(
                     isMatched = true,
                     isDispatched = true,
@@ -97,8 +107,8 @@ class SmsIngestionProcessor(
         val queuedActivity = ForwardingActivity(
             id = activityId,
             timestamp = timestamp,
-            normalizedSender = normalizedSender,
-            matchedKeyword = matchResult.matchedKeyword,
+            normalizedSender = if (normalizedSender.isNotBlank()) normalizedSender else rawSender,
+            matchedKeyword = effectiveKeyword,
             httpStatusCode = 0,
             isSuccess = false,
             snippet = snippet,

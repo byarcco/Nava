@@ -24,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,6 +68,8 @@ import ir.cutte.nava.ui.theme.NavaSecondaryContainer
 import ir.cutte.nava.ui.theme.NavaSuccessContainer
 import ir.cutte.nava.ui.theme.NavaSurface
 import ir.cutte.nava.ui.theme.NavaSurfaceVariant
+import ir.cutte.nava.ui.theme.getYekanFontFamily
+import ir.cutte.nava.util.toPersianDigits
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -78,11 +80,14 @@ fun SettingsScreen(
     authToken: String,
     whitelistSenders: Set<String>,
     keywords: Set<String>,
+    deviceId: String,
+    deviceName: String,
     isServiceEnabled: Boolean,
     isHeartbeatEnabled: Boolean,
     onUpdatePrimaryWorkerUrl: (String) -> Unit,
     onUpdateSecondaryWorkerUrl: (String) -> Unit,
     onUpdateAuthToken: (String) -> Unit,
+    onUpdateDeviceName: (String) -> Unit,
     onAddWhitelist: (String) -> Unit,
     onRemoveWhitelist: (String) -> Unit,
     onAddKeyword: (String) -> Unit,
@@ -96,12 +101,14 @@ fun SettingsScreen(
     var primaryUrlInput by remember(primaryWorkerUrl) { mutableStateOf(primaryWorkerUrl) }
     var secondaryUrlInput by remember(secondaryWorkerUrl) { mutableStateOf(secondaryWorkerUrl) }
     var tokenInput by remember(authToken) { mutableStateOf(authToken) }
+    var deviceNameInput by remember(deviceName) { mutableStateOf(deviceName) }
     var senderInput by remember { mutableStateOf("") }
     var keywordInput by remember { mutableStateOf("") }
 
     var isDispatchingTest by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<DispatchResult?>(null) }
     var showSavedMessage by remember { mutableStateOf(false) }
+    var showDeviceSavedMessage by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = NavaBackground,
@@ -110,6 +117,7 @@ fun SettingsScreen(
                 title = {
                     Text(
                         text = "تنظیمات درگاه",
+                        fontFamily = getYekanFontFamily(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = NavaOnBackground
@@ -175,6 +183,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "پردازش آنی به محض دریافت پیام جدید در دستگاه",
                                     fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
                                     color = NavaSecondary
                                 )
                             }
@@ -206,6 +215,7 @@ fun SettingsScreen(
                                 Text(
                                     text = "پایش اتصال و سنجش دسترسی‌پذیری سرور هر ۳۰ دقیقه",
                                     fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
                                     color = NavaSecondary
                                 )
                             }
@@ -236,6 +246,104 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
+                            text = "مشخصات دستگاه",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = NavaOnSurface
+                        )
+                        Text(
+                            text = "شناسه فنی و نام نمایشی جهت تفکیک فیزیکی دستگاه‌ها در سرور",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = NavaSecondary
+                        )
+
+                        OutlinedTextField(
+                            value = deviceId,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("شناسه فنی دستگاه (device_id)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = NavaSurfaceVariant,
+                                unfocusedContainerColor = NavaSurfaceVariant,
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent
+                            )
+                        )
+
+                        OutlinedTextField(
+                            value = deviceNameInput,
+                            onValueChange = {
+                                deviceNameInput = it
+                                showDeviceSavedMessage = false
+                            },
+                            label = { Text("نام نمایشی دستگاه (device_name)") },
+                            placeholder = { Text("مثلاً: Samsung S23 یا گوشی دفتر") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = NavaSurfaceVariant,
+                                unfocusedContainerColor = NavaSurfaceVariant,
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent
+                            )
+                        )
+
+                        Button(
+                            onClick = {
+                                val trimmed = deviceNameInput.trim()
+                                if (trimmed.isNotEmpty()) {
+                                    onUpdateDeviceName(trimmed)
+                                    showDeviceSavedMessage = true
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(50),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavaPrimary,
+                                contentColor = NavaOnPrimary
+                            )
+                        ) {
+                            Text("ذخیره نام دستگاه", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        if (showDeviceSavedMessage) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = NavaSuccessContainer,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "نام دستگاه با موفقیت ذخیره شد",
+                                    color = NavaOnSuccessContainer,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = NavaSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
                             text = "تنظیمات اتصال سرور",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
@@ -244,6 +352,7 @@ fun SettingsScreen(
                         Text(
                             text = "آدرس‌های دریافت پیامک و کلید احراز هویت اختصاصی",
                             fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
                             color = NavaSecondary
                         )
 
@@ -321,7 +430,7 @@ fun SettingsScreen(
                                     text = "تنظیمات با موفقیت ذخیره شد",
                                     color = NavaOnSuccessContainer,
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(12.dp)
                                 )
                             }
@@ -348,12 +457,14 @@ fun SettingsScreen(
                             color = NavaOnSurface
                         )
                         Text(
-                            text = "ارسال یک پیام نمونه برای اطمینان از سلامت شبکه و پاسخ‌دهی سرور",
+                            text = "ارسال یک بسته آزمایشی برای اطمینان از صحت دسترسی به سرور اصلی و پشتیبان",
                             fontSize = 12.sp,
-                            color = NavaSecondary
+                            fontWeight = FontWeight.Medium,
+                            color = NavaSecondary,
+                            lineHeight = 18.sp
                         )
 
-                        FilledTonalButton(
+                        Button(
                             onClick = {
                                 if (!isDispatchingTest) {
                                     isDispatchingTest = true
@@ -370,33 +481,47 @@ fun SettingsScreen(
                                 .height(50.dp),
                             shape = RoundedCornerShape(50),
                             enabled = !isDispatchingTest,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = NavaPrimaryContainer,
-                                contentColor = NavaOnPrimaryContainer
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NavaPrimary,
+                                contentColor = NavaOnPrimary
                             )
                         ) {
                             if (isDispatchingTest) {
                                 CircularProgressIndicator(
-                                    color = NavaOnPrimaryContainer,
+                                    color = NavaOnPrimary,
                                     strokeWidth = 2.dp,
                                     modifier = Modifier.size(20.dp)
                                 )
                             } else {
-                                Text("بررسی اتصال به سرور", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("ارسال پیام آزمایشی به سرور", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
                         }
 
                         testResult?.let { result ->
+                            val (bgColor, textColor, messageText) = if (result.isSuccess) {
+                                Triple(
+                                    NavaSuccessContainer,
+                                    NavaOnSuccessContainer,
+                                    "ارتباط برقرار شد (کد ${result.statusCode.toPersianDigits()})"
+                                )
+                            } else {
+                                Triple(
+                                    NavaErrorContainer,
+                                    NavaOnErrorContainer,
+                                    result.errorMessage ?: "خطا در برقراری ارتباط"
+                                )
+                            }
+
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = if (result.isSuccess) NavaSuccessContainer else NavaErrorContainer,
+                                color = bgColor,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = if (result.isSuccess) "ارتباط با سرور با موفقیت برقرار شد" else "خطا در برقراری ارتباط با سرور",
-                                    color = if (result.isSuccess) NavaOnSuccessContainer else NavaOnErrorContainer,
+                                    text = messageText,
+                                    color = textColor,
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(12.dp)
                                 )
                             }
@@ -417,124 +542,15 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            text = "کلمات کلیدی مجاز",
+                            text = "فرستنده‌های معتبر",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = NavaOnSurface
                         )
                         Text(
-                            text = "تنها پیامک‌هایی که حاوی این عبارات باشند به سرور ارسال می‌شوند",
+                            text = "پیامک‌های دریافتی از این فرستنده‌ها بلافاصله به سرور فرستاده می‌شوند",
                             fontSize = 12.sp,
-                            color = NavaSecondary
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = keywordInput,
-                                onValueChange = { keywordInput = it },
-                                placeholder = { Text("مثلاً: کد ورود، رمز پویا", fontSize = 13.sp) },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = NavaSurfaceVariant,
-                                    unfocusedContainerColor = NavaSurfaceVariant,
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent
-                                )
-                            )
-
-                            Button(
-                                onClick = {
-                                    val trimmed = keywordInput.trim()
-                                    if (trimmed.isNotEmpty()) {
-                                        onAddKeyword(trimmed)
-                                        keywordInput = ""
-                                    }
-                                },
-                                modifier = Modifier.fillMaxHeight(),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = NavaPrimary,
-                                    contentColor = NavaOnPrimary
-                                )
-                            ) {
-                                Text("افزودن", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-
-                        if (keywords.isNotEmpty()) {
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                keywords.forEach { keyword ->
-                                    Surface(
-                                        shape = RoundedCornerShape(50),
-                                        color = NavaPrimaryContainer
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Text(
-                                                text = keyword,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = NavaOnPrimaryContainer
-                                            )
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .clickable { onRemoveKeyword(keyword) },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = AppIcons.Close,
-                                                    contentDescription = "حذف",
-                                                    tint = NavaOnPrimaryContainer,
-                                                    modifier = Modifier.size(12.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = NavaSurface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Text(
-                            text = "شماره‌های معتبر فرستنده",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = NavaOnSurface
-                        )
-                        Text(
-                            text = "پیامک‌های این فرستنده‌ها همواره بدون نیاز به کلمه کلیدی ارسال می‌شوند",
-                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
                             color = NavaSecondary
                         )
 
@@ -548,7 +564,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = senderInput,
                                 onValueChange = { senderInput = it },
-                                placeholder = { Text("مثلاً: BANKMELLI، 0912، 1000", fontSize = 13.sp) },
+                                placeholder = { Text("مثلاً: Raja.ir، 0912، 1000", fontSize = 13.sp) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight(),
@@ -570,7 +586,9 @@ fun SettingsScreen(
                                         senderInput = ""
                                     }
                                 },
-                                modifier = Modifier.fillMaxHeight(),
+                                modifier = Modifier
+                                    .height(52.dp)
+                                    .padding(vertical = 0.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NavaPrimary,
@@ -599,13 +617,14 @@ fun SettingsScreen(
                                         ) {
                                             Text(
                                                 text = sender,
+                                                color = NavaOnSecondaryContainer,
                                                 fontSize = 12.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = NavaOnSecondaryContainer
+                                                fontWeight = FontWeight.SemiBold
                                             )
                                             Box(
                                                 modifier = Modifier
-                                                    .size(16.dp)
+                                                    .size(18.dp)
+                                                    .clip(CircleShape)
                                                     .clickable { onRemoveWhitelist(sender) },
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -613,6 +632,120 @@ fun SettingsScreen(
                                                     imageVector = AppIcons.Close,
                                                     contentDescription = "حذف",
                                                     tint = NavaOnSecondaryContainer,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = NavaSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Text(
+                            text = "کلیدواژه‌های رهگیری",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = NavaOnSurface
+                        )
+                        Text(
+                            text = "پیامک‌هایی که شامل هر یک از این کلمات باشند دریافت و ارسال خواهند شد",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = NavaSecondary
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = keywordInput,
+                                onValueChange = { keywordInput = it },
+                                placeholder = { Text("مثلاً: کد ورود، رمز موقت", fontSize = 13.sp) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(16.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = NavaSurfaceVariant,
+                                    unfocusedContainerColor = NavaSurfaceVariant,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent
+                                )
+                            )
+
+                            Button(
+                                onClick = {
+                                    val trimmed = keywordInput.trim()
+                                    if (trimmed.isNotEmpty()) {
+                                        onAddKeyword(trimmed)
+                                        keywordInput = ""
+                                    }
+                                },
+                                modifier = Modifier
+                                    .height(52.dp)
+                                    .padding(vertical = 0.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NavaPrimary,
+                                    contentColor = NavaOnPrimary
+                                )
+                            ) {
+                                Text("افزودن", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+
+                        if (keywords.isNotEmpty()) {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                keywords.forEach { keyword ->
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = NavaPrimaryContainer
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = keyword,
+                                                color = NavaOnPrimaryContainer,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable { onRemoveKeyword(keyword) },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = AppIcons.Close,
+                                                    contentDescription = "حذف",
+                                                    tint = NavaOnPrimaryContainer,
                                                     modifier = Modifier.size(12.dp)
                                                 )
                                             }

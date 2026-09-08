@@ -45,12 +45,13 @@ class SmsDispatchWorker(
 
         val repository = SettingsRepository(applicationContext.navaDataStore)
         val now = System.currentTimeMillis()
-        val ageMillis = now - payload.timestamp
+        val timestampMillis = if (payload.timestamp < 10000000000L) payload.timestamp * 1000L else payload.timestamp
+        val ageMillis = now - timestampMillis
 
         if (ageMillis > TTL_EXPIRY_MILLIS) {
             val expiredActivity = ForwardingActivity(
                 id = activityId,
-                timestamp = payload.timestamp,
+                timestamp = timestampMillis,
                 normalizedSender = payload.sender,
                 matchedKeyword = payload.matchedKeyword,
                 httpStatusCode = 408,
@@ -73,7 +74,7 @@ class SmsDispatchWorker(
         return if (dispatchResult.isSuccess) {
             val replayedActivity = ForwardingActivity(
                 id = activityId,
-                timestamp = payload.timestamp,
+                timestamp = timestampMillis,
                 normalizedSender = payload.sender,
                 matchedKeyword = payload.matchedKeyword,
                 httpStatusCode = dispatchResult.statusCode,

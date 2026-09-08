@@ -16,7 +16,14 @@ object MessageMatcher {
             .filter { it.isNotEmpty() }
             .toSet()
 
-        val senderMatched = normalizedSender.isNotEmpty() && normalizedWhitelist.contains(normalizedSender)
+        val senderMatched = normalizedSender.isNotEmpty() && (
+            normalizedWhitelist.contains(normalizedSender) ||
+            normalizedWhitelist.any {
+                it.equals(normalizedSender, ignoreCase = true) ||
+                (it.length >= 4 && normalizedSender.startsWith(it, ignoreCase = true)) ||
+                (normalizedSender.length >= 4 && it.startsWith(normalizedSender, ignoreCase = true))
+            }
+        )
 
         val lowerBody = body.lowercase()
         val matchingKeyword = keywords.firstOrNull { keyword ->

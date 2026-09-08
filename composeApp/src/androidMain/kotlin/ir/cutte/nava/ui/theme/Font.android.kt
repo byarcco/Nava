@@ -15,3 +15,14 @@ actual fun getVazirmatnFontFamily(): FontFamily {
         Font(R.font.vazirmatn, FontWeight.Bold)
     )
 }
+
+@Composable
+actual fun getYekanFontFamily(): FontFamily {
+    return FontFamily(
+        Font(R.font.yekan, FontWeight.Normal),
+        Font(R.font.yekan, FontWeight.Medium),
+        Font(R.font.yekan, FontWeight.SemiBold),
+        Font(R.font.yekan, FontWeight.Bold)
+    )
+}
+

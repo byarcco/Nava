@@ -4,6 +4,7 @@ import android.app.Application
 import ir.cutte.nava.data.SettingsRepository
 import ir.cutte.nava.data.navaDataStore
 import ir.cutte.nava.service.NavaForegroundService
+import ir.cutte.nava.util.DeviceIdentifierHelper
 import ir.cutte.nava.util.PermissionHelper
 import ir.cutte.nava.worker.HeartbeatScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +21,9 @@ class NavaApplication : Application() {
 
         applicationScope.launch {
             val repository = SettingsRepository(navaDataStore)
+            val hardwareId = DeviceIdentifierHelper.getHardwareDeviceId(this@NavaApplication)
+            val defaultName = DeviceIdentifierHelper.getDefaultDeviceName()
+            repository.ensureDeviceIdentification(hardwareId, defaultName)
             val settings = repository.getSnapshot()
             if (settings.isServiceEnabled && PermissionHelper.hasForegroundServicePermission(this@NavaApplication)) {
                 try {

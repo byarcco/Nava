@@ -7,8 +7,8 @@ import kotlin.test.assertTrue
 
 class MessageMatcherTest {
 
-    private val defaultKeywords = setOf("کد ورود", "OTP", "verification")
-    private val defaultWhitelist = setOf("09123456789", "Bank Melli", "10008585")
+    private val defaultKeywords = setOf("کد ورود", "کد تایید", "کد تائید", "OTP", "verification")
+    private val defaultWhitelist = setOf("09123456789", "Bank Melli", "10008585", "Raja.ir")
 
     @Test
     fun matchesWhenBodyContainsConfiguredKeyword() {
@@ -21,6 +21,48 @@ class MessageMatcherTest {
         )
         assertTrue(result.isMatched)
         assertEquals("کد ورود", result.matchedKeyword)
+    }
+
+    @Test
+    fun matchesWhenBodyContainsNewPersianKeywords() {
+        val body1 = "کد تایید شما: 849201"
+        val result1 = MessageMatcher.match(
+            rawSender = "UNKNOWN",
+            body = body1,
+            whitelist = emptySet(),
+            keywords = defaultKeywords
+        )
+        assertTrue(result1.isMatched)
+        assertEquals("کد تایید", result1.matchedKeyword)
+
+        val body2 = "کد تائید ورود به سیستم: 123456"
+        val result2 = MessageMatcher.match(
+            rawSender = "UNKNOWN",
+            body = body2,
+            whitelist = emptySet(),
+            keywords = defaultKeywords
+        )
+        assertTrue(result2.isMatched)
+        assertEquals("کد تائید", result2.matchedKeyword)
+    }
+
+    @Test
+    fun matchesWhenSenderIsRajaCaseInsensitive() {
+        val result1 = MessageMatcher.match(
+            rawSender = "raja.ir",
+            body = "بلیط قطار شما صادر شد",
+            whitelist = defaultWhitelist,
+            keywords = defaultKeywords
+        )
+        assertTrue(result1.isMatched)
+
+        val result2 = MessageMatcher.match(
+            rawSender = "RAJA",
+            body = "اطلاعیه سفر",
+            whitelist = defaultWhitelist,
+            keywords = defaultKeywords
+        )
+        assertTrue(result2.isMatched)
     }
 
     @Test

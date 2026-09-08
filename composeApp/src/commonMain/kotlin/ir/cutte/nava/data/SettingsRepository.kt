@@ -28,6 +28,8 @@ class SettingsRepository(
     private val authTokenKey = stringPreferencesKey("auth_token")
     private val whitelistKey = stringSetPreferencesKey("whitelist_senders")
     private val keywordsKey = stringSetPreferencesKey("keywords")
+    private val deviceIdKey = stringPreferencesKey("device_id")
+    private val deviceNameKey = stringPreferencesKey("device_name")
     private val serviceEnabledKey = booleanPreferencesKey("service_enabled")
     private val heartbeatEnabledKey = booleanPreferencesKey("heartbeat_enabled")
     private val oemAutostartConfiguredKey = booleanPreferencesKey("oem_autostart_configured")
@@ -50,8 +52,10 @@ class SettingsRepository(
             val primaryUrl = preferences[primaryWorkerUrlKey] ?: "https://sms.cutte.ir"
             val secondaryUrl = preferences[secondaryWorkerUrlKey] ?: "https://sms-pipeline.imartrioss.workers.dev"
             val authToken = preferences[authTokenKey] ?: "85d8ecf6-5641-451a-a41d-20927eeccd28"
-            val whitelist = preferences[whitelistKey] ?: emptySet()
-            val keywords = preferences[keywordsKey] ?: setOf("کد ورود")
+            val whitelist = preferences[whitelistKey] ?: setOf("Raja.ir")
+            val keywords = preferences[keywordsKey] ?: setOf("کد ورود", "کد تایید", "کد تائید")
+            val deviceId = preferences[deviceIdKey] ?: ""
+            val deviceName = preferences[deviceNameKey] ?: ""
             val isEnabled = preferences[serviceEnabledKey] ?: true
             val isHeartbeat = preferences[heartbeatEnabledKey] ?: true
             val isOem = preferences[oemAutostartConfiguredKey] ?: false
@@ -79,6 +83,8 @@ class SettingsRepository(
                 authToken = authToken,
                 whitelistSenders = whitelist,
                 keywords = keywords,
+                deviceId = deviceId,
+                deviceName = deviceName,
                 isServiceEnabled = isEnabled,
                 isHeartbeatEnabled = isHeartbeat,
                 isOemAutostartConfigured = isOem,
@@ -110,18 +116,38 @@ class SettingsRepository(
         }
     }
 
+    suspend fun updateDeviceName(name: String) {
+        dataStore.edit { preferences ->
+            preferences[deviceNameKey] = name.trim()
+        }
+    }
+
+    suspend fun ensureDeviceIdentification(defaultId: String, defaultName: String) {
+        dataStore.edit { preferences ->
+            if (preferences[deviceIdKey].isNullOrBlank()) {
+                preferences[deviceIdKey] = defaultId
+            }
+            if (preferences[deviceNameKey].isNullOrBlank()) {
+                preferences[deviceNameKey] = defaultName
+            }
+            if ((preferences[serviceStartTimestampKey] ?: 0L) == 0L) {
+                preferences[serviceStartTimestampKey] = currentTimeMillis()
+            }
+        }
+    }
+
     suspend fun addWhitelistSender(sender: String) {
         val trimmed = sender.trim()
         if (trimmed.isEmpty()) return
         dataStore.edit { preferences ->
-            val current = preferences[whitelistKey] ?: emptySet()
+            val current = preferences[whitelistKey] ?: setOf("Raja.ir")
             preferences[whitelistKey] = current + trimmed
         }
     }
 
     suspend fun removeWhitelistSender(sender: String) {
         dataStore.edit { preferences ->
-            val current = preferences[whitelistKey] ?: emptySet()
+            val current = preferences[whitelistKey] ?: setOf("Raja.ir")
             preferences[whitelistKey] = current - sender
         }
     }
@@ -130,14 +156,14 @@ class SettingsRepository(
         val trimmed = keyword.trim()
         if (trimmed.isEmpty()) return
         dataStore.edit { preferences ->
-            val current = preferences[keywordsKey] ?: setOf("کد ورود")
+            val current = preferences[keywordsKey] ?: setOf("کد ورود", "کد تایید", "کد تائید")
             preferences[keywordsKey] = current + trimmed
         }
     }
 
     suspend fun removeKeyword(keyword: String) {
         dataStore.edit { preferences ->
-            val current = preferences[keywordsKey] ?: setOf("کد ورود")
+            val current = preferences[keywordsKey] ?: setOf("کد ورود", "کد تایید", "کد تائید")
             preferences[keywordsKey] = current - keyword
         }
     }
@@ -178,6 +204,13 @@ class SettingsRepository(
         }
     }
 
+    suspend fun incrementDispatchedCount() {
+        dataStore.edit { preferences ->
+            val current = preferences[totalDispatchedKey] ?: 0L
+            preferences[totalDispatchedKey] = current + 1L
+        }
+    }
+
     suspend fun recordActivity(activity: ForwardingActivity) {
         dataStore.edit { preferences ->
             val currentJson = preferences[recentActivitiesKey] ?: "[]"
@@ -188,9 +221,7 @@ class SettingsRepository(
             }
 
             val existingIndex = currentList.indexOfFirst { it.id == activity.id }
-            val wasAlreadySuccess = if (existingIndex >= 0) currentList[existingIndex].isSuccess else false
-
-            if (activity.isSuccess && !wasAlreadySuccess) {
+            if (existingIndex < 0) {
                 val currentCount = preferences[totalDispatchedKey] ?: 0L
                 preferences[totalDispatchedKey] = currentCount + 1L
             }
