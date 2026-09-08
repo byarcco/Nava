@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-sdk tools:overrideLibrary="androidx.compose.material3, androidx.compose.foundation, androidx.compose.ui, androidx.compose.animation, androidx.compose.runtime, org.jetbrains.compose.material3, org.jetbrains.compose.foundation, org.jetbrains.compose.ui, org.jetbrains.compose.runtime, org.jetbrains.compose.components.resources, org.jetbrains.compose.resources" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
