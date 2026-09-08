@@ -23,3 +23,7 @@
 -keep class okhttp3.** { *; }
 -dontwarn okio.**
 -keep class okio.** { *; }
+-dontwarn kotlin.**
+-keepclassmembers class * {
+    kotlin.Metadata *;
+}

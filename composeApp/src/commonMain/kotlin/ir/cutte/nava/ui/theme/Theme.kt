@@ -7,10 +7,12 @@ import androidx.compose.runtime.Composable
 private val NavaColorScheme = lightColorScheme(
     primary = NavaPrimary,
     onPrimary = NavaOnPrimary,
+    primaryContainer = NavaPrimaryContainer,
+    onPrimaryContainer = NavaOnPrimaryContainer,
     secondary = NavaSecondary,
     onSecondary = NavaOnSecondary,
-    tertiary = NavaTertiary,
-    onTertiary = NavaOnTertiary,
+    secondaryContainer = NavaSecondaryContainer,
+    onSecondaryContainer = NavaOnSecondaryContainer,
     background = NavaBackground,
     onBackground = NavaOnBackground,
     surface = NavaSurface,
@@ -18,13 +20,18 @@ private val NavaColorScheme = lightColorScheme(
     surfaceVariant = NavaSurfaceVariant,
     onSurfaceVariant = NavaOnSurfaceVariant,
     outline = NavaOutline,
-    error = NavaError
+    outlineVariant = NavaOutlineVariant,
+    error = NavaError,
+    onError = NavaOnError,
+    errorContainer = NavaErrorContainer,
+    onErrorContainer = NavaOnErrorContainer
 )
 
 @Composable
 fun NavaTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = NavaColorScheme,
+        typography = getNavaTypography(),
         content = content
     )
 }

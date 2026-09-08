@@ -2,9 +2,11 @@ package ir.cutte.nava.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,10 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -23,8 +28,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -32,7 +37,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,23 +49,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.cutte.nava.engine.IngestionOutcome
-import ir.cutte.nava.model.DeliveryStatus
 import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.ProbeStatus
+import ir.cutte.nava.ui.theme.NavaBackground
 import ir.cutte.nava.ui.theme.NavaError
+import ir.cutte.nava.ui.theme.NavaErrorContainer
+import ir.cutte.nava.ui.theme.NavaOnBackground
+import ir.cutte.nava.ui.theme.NavaOnErrorContainer
 import ir.cutte.nava.ui.theme.NavaOnPrimary
-import ir.cutte.nava.ui.theme.NavaOnTertiary
-import ir.cutte.nava.ui.theme.NavaOutline
+import ir.cutte.nava.ui.theme.NavaOnPrimaryContainer
+import ir.cutte.nava.ui.theme.NavaOnSecondaryContainer
+import ir.cutte.nava.ui.theme.NavaOnSuccessContainer
+import ir.cutte.nava.ui.theme.NavaOnSurface
+import ir.cutte.nava.ui.theme.NavaOnSurfaceVariant
+import ir.cutte.nava.ui.theme.NavaOnWarningContainer
 import ir.cutte.nava.ui.theme.NavaPrimary
+import ir.cutte.nava.ui.theme.NavaPrimaryContainer
 import ir.cutte.nava.ui.theme.NavaSecondary
+import ir.cutte.nava.ui.theme.NavaSecondaryContainer
 import ir.cutte.nava.ui.theme.NavaSuccess
+import ir.cutte.nava.ui.theme.NavaSuccessContainer
+import ir.cutte.nava.ui.theme.NavaSurface
 import ir.cutte.nava.ui.theme.NavaSurfaceVariant
-import ir.cutte.nava.ui.theme.NavaTertiary
+import ir.cutte.nava.ui.theme.NavaWarning
+import ir.cutte.nava.ui.theme.NavaWarningContainer
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,13 +84,12 @@ import kotlinx.coroutines.launch
 fun DashboardScreen(
     isServiceEnabled: Boolean,
     probeStatus: ProbeStatus,
-    batteryLevel: Int,
-    isCharging: Boolean,
     uptimeText: String,
     totalDispatchedCount: Long,
     hasSmsPermission: Boolean,
     hasNotificationPermission: Boolean,
     isBatteryOptimizationIgnored: Boolean,
+    isOemAutostartConfigured: Boolean,
     isForegroundRunning: Boolean,
     recentActivities: List<ForwardingActivity>,
     onToggleService: (Boolean) -> Unit,
@@ -83,61 +97,67 @@ fun DashboardScreen(
     onRequestNotificationPermission: () -> Unit,
     onRequestBatteryOptimization: () -> Unit,
     onLaunchOemAutostart: () -> Unit,
+    onConfirmOemAutostart: () -> Unit,
     onToggleForegroundService: () -> Unit,
     onSimulateSms: suspend (String, String) -> IngestionOutcome,
     onNavigateToSettings: () -> Unit
 ) {
     Scaffold(
+        containerColor = NavaBackground,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
-                            text = "Nava",
+                            text = "نوا",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
-                            color = NavaPrimary
+                            fontSize = 24.sp,
+                            color = NavaOnBackground
                         )
                         Text(
-                            text = "Automated SMS Gateway",
-                            fontSize = 12.sp,
+                            text = "درگاه هوشمند پیامک",
+                            fontSize = 13.sp,
                             color = NavaSecondary
                         )
                     }
                 },
                 actions = {
-                    FilledTonalButton(
-                        onClick = onNavigateToSettings,
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = NavaTertiary,
-                            contentColor = NavaPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                    Surface(
+                        shape = CircleShape,
+                        color = NavaSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     ) {
-                        Text("Settings", fontWeight = FontWeight.SemiBold)
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "تنظیمات",
+                                tint = NavaOnSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = NavaBackground
                 )
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+        }
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                ServiceStatusBanner(
+                ServiceStatusOverviewCard(
                     isServiceEnabled = isServiceEnabled,
                     probeStatus = probeStatus,
-                    batteryLevel = batteryLevel,
-                    isCharging = isCharging,
                     uptimeText = uptimeText,
                     totalDispatchedCount = totalDispatchedCount,
                     onToggleService = onToggleService
@@ -145,82 +165,74 @@ fun DashboardScreen(
             }
 
             item {
-                DiagnosticSimulatorCard(onSimulateSms = onSimulateSms)
+                SimulatorCard(onSimulateSms = onSimulateSms)
             }
 
             item {
-                Text(
-                    text = "Permission & Resilience Wizard",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    color = NavaPrimary,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                SectionHeader(
+                    title = "آماده‌سازی و دسترسی‌ها",
+                    subtitle = "پیش‌نیازهای پایداری و فعالیت پیوسته در پس‌زمینه"
                 )
             }
 
             item {
-                WizardStepCard(
-                    stepNumber = "1",
-                    title = "SMS Access",
-                    description = "Required to ingest and parse incoming SMS messages",
+                PermissionCard(
+                    stepNumber = "۱",
+                    title = "دسترسی به پیامک‌ها",
+                    description = "برای دریافت پیام‌های ورودی و هدایت خودکار به سرور",
                     isGranted = hasSmsPermission,
-                    actionLabel = "Grant SMS",
+                    actionButtonText = "اعطای دسترسی",
                     onAction = onRequestSmsPermission
                 )
             }
 
             item {
-                WizardStepCard(
-                    stepNumber = "2",
-                    title = "Notifications",
-                    description = "Allows status alerts and ongoing gateway monitoring",
+                PermissionCard(
+                    stepNumber = "۲",
+                    title = "اعلان‌های برنامه",
+                    description = "جهت اطلاع لحظه‌ای از فعال بودن درگاه و عملکرد سامانه",
                     isGranted = hasNotificationPermission,
-                    actionLabel = "Grant Notification",
+                    actionButtonText = "اعطای دسترسی",
                     onAction = onRequestNotificationPermission
                 )
             }
 
             item {
-                WizardStepCard(
-                    stepNumber = "3",
-                    title = "Battery Optimization",
-                    description = "Prevents OS from suspending ingestion when idle",
+                PermissionCard(
+                    stepNumber = "۳",
+                    title = "بهینه‌سازی باتری",
+                    description = "جلوگیری از توقف خودکار برنامه توسط سیستم‌عامل در زمان استراحت",
                     isGranted = isBatteryOptimizationIgnored,
-                    actionLabel = "Exempt Battery",
+                    actionButtonText = "غیرفعال‌سازی محدودیت",
                     onAction = onRequestBatteryOptimization
                 )
             }
 
             item {
-                WizardStepCard(
-                    stepNumber = "4",
-                    title = "OEM Autostart Protection",
-                    description = "Deep link to MIUI, EMUI, ColorOS, or OneUI power policies",
-                    isGranted = false,
-                    isOptionalNotice = true,
-                    actionLabel = "Launch OEM Panel",
-                    onAction = onLaunchOemAutostart
+                OemAutostartCard(
+                    isConfigured = isOemAutostartConfigured,
+                    onLaunch = {
+                        onConfirmOemAutostart()
+                        onLaunchOemAutostart()
+                    }
                 )
             }
 
             item {
-                WizardStepCard(
-                    stepNumber = "5",
-                    title = "Foreground Service",
-                    description = "Active data-sync foreground notification for Android 14+",
+                PermissionCard(
+                    stepNumber = "۵",
+                    title = "سرویس پایدار پس‌زمینه",
+                    description = "حفظ اتصال پیوسته و پایش دائم در تمام ساعات شبانه‌روز",
                     isGranted = isForegroundRunning,
-                    actionLabel = if (isForegroundRunning) "Restart Service" else "Start Service",
+                    actionButtonText = "فعال‌سازی سرویس",
                     onAction = onToggleForegroundService
                 )
             }
 
             item {
-                Text(
-                    text = "Recent Forwarding Activity",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
-                    color = NavaPrimary,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                SectionHeader(
+                    title = "گزارش پیام‌های اخیر",
+                    subtitle = "آخرین پیامک‌های پردازش‌شده در سامانه"
                 )
             }
 
@@ -233,91 +245,232 @@ fun DashboardScreen(
                     ActivityItemCard(activity = activity)
                 }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-            }
         }
     }
 }
 
 @Composable
-private fun DiagnosticSimulatorCard(
-    onSimulateSms: suspend (String, String) -> IngestionOutcome
+private fun ServiceStatusOverviewCard(
+    isServiceEnabled: Boolean,
+    probeStatus: ProbeStatus,
+    uptimeText: String,
+    totalDispatchedCount: Long,
+    onToggleService: (Boolean) -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var senderInput by remember { mutableStateOf("BANKMELLI") }
-    var bodyInput by remember { mutableStateOf("کد ورود شما: 123456") }
-    var isProcessing by remember { mutableStateOf(false) }
-    var simulationOutcome by remember { mutableStateOf<IngestionOutcome?>(null) }
-    val coroutineScope = rememberCoroutineScope()
-
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = NavaSurfaceVariant
-        )
+            containerColor = if (isServiceEnabled) NavaPrimary else NavaSurfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "SMS Ingestion Simulator",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = NavaPrimary
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(if (isServiceEnabled) NavaSuccess else NavaSecondary)
                     )
                     Text(
-                        text = "Pipe synthetic SMS directly into failover pipeline",
+                        text = if (isServiceEnabled) "درگاه پیامک فعال است" else "درگاه پیامک متوقف است",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        color = if (isServiceEnabled) NavaOnPrimary else NavaOnSurface
+                    )
+                }
+
+                Switch(
+                    checked = isServiceEnabled,
+                    onCheckedChange = onToggleService,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NavaPrimary,
+                        checkedTrackColor = NavaOnPrimary,
+                        uncheckedThumbColor = NavaSecondary,
+                        uncheckedTrackColor = NavaOutlineVariant
+                    )
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = if (isServiceEnabled) NavaOnPrimary.copy(alpha = 0.15f) else NavaBackground,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                when (probeStatus) {
+                                    ProbeStatus.CONNECTED_PRIMARY, ProbeStatus.CONNECTED_SECONDARY -> NavaSuccess
+                                    ProbeStatus.INTERNET_ONLY -> NavaWarning
+                                    ProbeStatus.OFFLINE -> NavaError
+                                }
+                            )
+                    )
+                    Text(
+                        text = when (probeStatus) {
+                            ProbeStatus.CONNECTED_PRIMARY -> "متصل به سرور اصلی"
+                            ProbeStatus.CONNECTED_SECONDARY -> "متصل به سرور پشتیبان"
+                            ProbeStatus.INTERNET_ONLY -> "ارتباط با اینترنت برقرار است"
+                            ProbeStatus.OFFLINE -> "عدم دسترسی به اینترنت"
+                        },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isServiceEnabled) NavaOnPrimary else NavaOnSurfaceVariant
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "مدت فعالیت",
+                        fontSize = 12.sp,
+                        color = if (isServiceEnabled) NavaOnPrimary.copy(alpha = 0.75f) else NavaSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = uptimeText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isServiceEnabled) NavaOnPrimary else NavaOnSurface
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "پیام‌های ارسال‌شده",
+                        fontSize = 12.sp,
+                        color = if (isServiceEnabled) NavaOnPrimary.copy(alpha = 0.75f) else NavaSecondary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = totalDispatchedCount.toString(),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isServiceEnabled) NavaOnPrimary else NavaOnSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SimulatorCard(
+    onSimulateSms: suspend (String, String) -> IngestionOutcome
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var senderInput by remember { mutableStateOf("") }
+    var bodyInput by remember { mutableStateOf("") }
+    var isProcessing by remember { mutableStateOf(false) }
+    var simulationOutcome by remember { mutableStateOf<IngestionOutcome?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = NavaSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "شبیه‌ساز پیامک آزمایشی",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = NavaOnSurface
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "بررسی فرآیند دریافت و ارسال بدون سیم‌کارت",
                         fontSize = 12.sp,
                         color = NavaSecondary
                     )
                 }
-                TextButton(onClick = { isExpanded = !isExpanded }) {
+
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = NavaSurfaceVariant
+                ) {
                     Text(
-                        text = if (isExpanded) "Hide" else "Expand",
-                        fontWeight = FontWeight.Bold,
-                        color = NavaPrimary
+                        text = if (isExpanded) "بستن" else "آزمایش",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = NavaPrimary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                     )
                 }
             }
 
             AnimatedVisibility(visible = isExpanded) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     OutlinedTextField(
                         value = senderInput,
                         onValueChange = { senderInput = it },
-                        label = { Text("Sender") },
+                        label = { Text("شماره یا نام فرستنده") },
+                        placeholder = { Text("مثلاً: BANKMELLI یا 09123456789") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavaPrimary,
-                            unfocusedBorderColor = NavaOutline
+                            focusedContainerColor = NavaSurfaceVariant,
+                            unfocusedContainerColor = NavaSurfaceVariant,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent
                         )
                     )
 
                     OutlinedTextField(
                         value = bodyInput,
                         onValueChange = { bodyInput = it },
-                        label = { Text("Body") },
+                        label = { Text("متن پیامک") },
+                        placeholder = { Text("مثلاً: کد تأیید ورود شما: ۱۲۳۴۵۶") },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NavaPrimary,
-                            unfocusedBorderColor = NavaOutline
+                            focusedContainerColor = NavaSurfaceVariant,
+                            unfocusedContainerColor = NavaSurfaceVariant,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent
                         )
                     )
 
@@ -333,8 +486,10 @@ private fun DiagnosticSimulatorCard(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(50),
                         enabled = !isProcessing,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NavaPrimary,
@@ -345,33 +500,43 @@ private fun DiagnosticSimulatorCard(
                             CircularProgressIndicator(
                                 color = NavaOnPrimary,
                                 strokeWidth = 2.dp,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         } else {
-                            Text("Dispatch Test SMS", fontWeight = FontWeight.SemiBold)
+                            Text("ارسال آزمایشی پیام", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
 
                     simulationOutcome?.let { outcome ->
+                        val (bgColor, textColor, messageText) = when {
+                            outcome.isDispatched -> Triple(
+                                NavaSuccessContainer,
+                                NavaOnSuccessContainer,
+                                "پیام با موفقیت به سرور ارسال شد"
+                            )
+                            outcome.isMatched -> Triple(
+                                NavaWarningContainer,
+                                NavaOnWarningContainer,
+                                "پیام مطابقت داشت اما در صف انتظار قرار گرفت"
+                            )
+                            else -> Triple(
+                                NavaErrorContainer,
+                                NavaOnErrorContainer,
+                                "پیام با کلمات کلیدی مجاز مطابقت نداشت"
+                            )
+                        }
+
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = when {
-                                outcome.isDispatched -> NavaSuccess.copy(alpha = 0.15f)
-                                outcome.isMatched -> Color(0xFFF59E0B).copy(alpha = 0.15f)
-                                else -> NavaError.copy(alpha = 0.15f)
-                            },
+                            shape = RoundedCornerShape(16.dp),
+                            color = bgColor,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = outcome.statusDescription,
-                                color = when {
-                                    outcome.isDispatched -> NavaSuccess
-                                    outcome.isMatched -> Color(0xFFB45309)
-                                    else -> NavaError
-                                },
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(10.dp)
+                                text = messageText,
+                                color = textColor,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(14.dp)
                             )
                         }
                     }
@@ -382,21 +547,37 @@ private fun DiagnosticSimulatorCard(
 }
 
 @Composable
-private fun ServiceStatusBanner(
-    isServiceEnabled: Boolean,
-    probeStatus: ProbeStatus,
-    batteryLevel: Int,
-    isCharging: Boolean,
-    uptimeText: String,
-    totalDispatchedCount: Long,
-    onToggleService: (Boolean) -> Unit
+private fun SectionHeader(title: String, subtitle: String) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = NavaOnBackground
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = subtitle,
+            fontSize = 13.sp,
+            color = NavaSecondary
+        )
+    }
+}
+
+@Composable
+private fun PermissionCard(
+    stepNumber: String,
+    title: String,
+    description: String,
+    isGranted: Boolean,
+    actionButtonText: String,
+    onAction: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = NavaPrimary
-        )
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = NavaSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -409,112 +590,66 @@ private fun ServiceStatusBanner(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .clip(CircleShape)
-                            .background(
-                                when {
-                                    !isServiceEnabled -> NavaError
-                                    probeStatus == ProbeStatus.CONNECTED_PRIMARY -> NavaSuccess
-                                    probeStatus == ProbeStatus.CONNECTED_BACKUP -> NavaTertiary
-                                    probeStatus == ProbeStatus.INTERNET_ONLY -> Color(0xFFF59E0B)
-                                    else -> NavaError
-                                }
+                    Surface(
+                        shape = CircleShape,
+                        color = if (isGranted) NavaSuccessContainer else NavaSecondaryContainer,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = stepNumber,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = if (isGranted) NavaOnSuccessContainer else NavaOnSecondaryContainer
                             )
-                    )
+                        }
+                    }
+
                     Text(
-                        text = if (isServiceEnabled) "SYSTEM ACTIVE" else "SYSTEM STOPPED",
-                        color = NavaOnPrimary,
+                        text = title,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp,
-                        fontSize = 14.sp
+                        fontSize = 15.sp,
+                        color = NavaOnSurface
                     )
                 }
-                Switch(
-                    checked = isServiceEnabled,
-                    onCheckedChange = onToggleService,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = NavaPrimary,
-                        checkedTrackColor = NavaTertiary,
-                        uncheckedThumbColor = NavaSecondary,
-                        uncheckedTrackColor = NavaSurfaceVariant
-                    )
-                )
-            }
 
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = when (probeStatus) {
-                    ProbeStatus.CONNECTED_PRIMARY -> NavaSuccess.copy(alpha = 0.25f)
-                    ProbeStatus.CONNECTED_BACKUP -> NavaTertiary.copy(alpha = 0.35f)
-                    ProbeStatus.INTERNET_ONLY -> Color(0xFFF59E0B).copy(alpha = 0.25f)
-                    ProbeStatus.OFFLINE -> NavaError.copy(alpha = 0.25f)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = if (isGranted) NavaSuccessContainer else NavaErrorContainer
                 ) {
                     Text(
-                        text = when (probeStatus) {
-                            ProbeStatus.CONNECTED_PRIMARY -> "PRIMARY CLOUD (CUSTOM DOMAIN)"
-                            ProbeStatus.CONNECTED_BACKUP -> "FAILOVER CLOUD (WORKERS.DEV)"
-                            ProbeStatus.INTERNET_ONLY -> "INTERNET ONLY (WORKERS DOWN)"
-                            ProbeStatus.OFFLINE -> "NETWORK OFFLINE"
-                        },
-                        fontSize = 11.sp,
+                        text = if (isGranted) "تأیید شد" else "لازم است",
+                        color = if (isGranted) NavaOnSuccessContainer else NavaOnErrorContainer,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        color = NavaOnPrimary
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
-
-                    if (batteryLevel >= 0) {
-                        Text(
-                            text = "${batteryLevel}%" + if (isCharging) " (CHARGING)" else "",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NavaTertiary
-                        )
-                    }
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "UPTIME",
-                        fontSize = 11.sp,
-                        color = NavaTertiary,
-                        fontWeight = FontWeight.SemiBold
+            Text(
+                text = description,
+                fontSize = 13.sp,
+                color = NavaSecondary,
+                lineHeight = 19.sp
+            )
+
+            if (!isGranted) {
+                Button(
+                    onClick = onAction,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NavaPrimary,
+                        contentColor = NavaOnPrimary
                     )
-                    Text(
-                        text = if (isServiceEnabled) uptimeText else "Offline",
-                        fontSize = 18.sp,
-                        color = NavaOnPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "DISPATCHED",
-                        fontSize = 11.sp,
-                        color = NavaTertiary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = totalDispatchedCount.toString(),
-                        fontSize = 18.sp,
-                        color = NavaOnPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                ) {
+                    Text(text = actionButtonText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -522,25 +657,19 @@ private fun ServiceStatusBanner(
 }
 
 @Composable
-private fun WizardStepCard(
-    stepNumber: String,
-    title: String,
-    description: String,
-    isGranted: Boolean,
-    actionLabel: String,
-    isOptionalNotice: Boolean = false,
-    onAction: () -> Unit
+private fun OemAutostartCard(
+    isConfigured: Boolean,
+    onLaunch: () -> Unit
 ) {
-    OutlinedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = NavaSurfaceVariant
-        )
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = NavaSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -549,77 +678,66 @@ private fun WizardStepCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = NavaSecondary,
-                        modifier = Modifier.size(28.dp)
+                        color = NavaSuccessContainer,
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = stepNumber,
-                                color = NavaOnPrimary,
+                                text = "۴",
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                color = NavaOnSuccessContainer
                             )
                         }
                     }
+
                     Text(
-                        text = title,
+                        text = "اجازه شروع خودکار",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = NavaPrimary
+                        color = NavaOnSurface
                     )
                 }
 
-                if (!isOptionalNotice) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (isGranted) NavaSuccess.copy(alpha = 0.15f) else NavaError.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = if (isGranted) "Granted" else "Required",
-                            color = if (isGranted) NavaSuccess else NavaError,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                } else {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = NavaTertiary.copy(alpha = 0.25f)
-                    ) {
-                        Text(
-                            text = "Recommended",
-                            color = NavaOnTertiary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = NavaSuccessContainer
+                ) {
+                    Text(
+                        text = if (isConfigured) "تأیید شد" else "پیشنهادی",
+                        color = NavaOnSuccessContainer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
                 }
             }
 
             Text(
-                text = description,
+                text = "فعال‌سازی شروع خودکار در تنظیمات اختصاصی دستگاه (مانند شیائومی، سامسونگ یا هواوی)",
                 fontSize = 13.sp,
                 color = NavaSecondary,
-                lineHeight = 18.sp
+                lineHeight = 19.sp
             )
 
-            if (!isGranted || isOptionalNotice) {
-                Button(
-                    onClick = onAction,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NavaSecondary,
-                        contentColor = NavaOnPrimary
+            if (!isConfigured) {
+                FilledTonalButton(
+                    onClick = onLaunch,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = NavaPrimaryContainer,
+                        contentColor = NavaOnPrimaryContainer
                     )
                 ) {
-                    Text(actionLabel, fontWeight = FontWeight.SemiBold)
+                    Text("باز کردن تنظیمات دستگاه", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -628,35 +746,31 @@ private fun WizardStepCard(
 
 @Composable
 private fun EmptyActivityCard() {
-    OutlinedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = NavaSurfaceVariant
-        )
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = NavaSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(32.dp),
-            contentAlignment = Alignment.Center
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "No Forwarding Events Yet",
-                    fontWeight = FontWeight.Bold,
-                    color = NavaPrimary,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = "Matched incoming SMS payloads will appear here in real-time",
-                    fontSize = 12.sp,
-                    color = NavaSecondary
-                )
-            }
+            Text(
+                text = "هنوز پیامی دریافت نشده است",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = NavaSecondary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "به محض ورود پیامک منطبق، وضعیت آن در اینجا نمایش داده می‌شود",
+                fontSize = 12.sp,
+                color = NavaSecondary.copy(alpha = 0.8f)
+            )
         }
     }
 }
@@ -665,14 +779,13 @@ private fun EmptyActivityCard() {
 private fun ActivityItemCard(activity: ForwardingActivity) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = NavaSurfaceVariant
-        )
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = NavaSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -683,96 +796,45 @@ private fun ActivityItemCard(activity: ForwardingActivity) {
                     text = activity.normalizedSender,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = NavaPrimary,
-                    fontFamily = FontFamily.Monospace
+                    color = NavaOnSurface
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = when (activity.deliveryStatus) {
-                            DeliveryStatus.DISPATCHED_INSTANT -> NavaSuccess.copy(alpha = 0.2f)
-                            DeliveryStatus.DISPATCHED_REPLAYED -> NavaTertiary.copy(alpha = 0.35f)
-                            DeliveryStatus.QUEUED_OFFLINE -> Color(0xFFF59E0B).copy(alpha = 0.2f)
-                            DeliveryStatus.FAILED_EXPIRED -> NavaError.copy(alpha = 0.2f)
-                        }
-                    ) {
-                        Text(
-                            text = when (activity.deliveryStatus) {
-                                DeliveryStatus.DISPATCHED_INSTANT -> "INSTANT"
-                                DeliveryStatus.DISPATCHED_REPLAYED -> "REPLAYED"
-                                DeliveryStatus.QUEUED_OFFLINE -> "QUEUED (OFFLINE)"
-                                DeliveryStatus.FAILED_EXPIRED -> "EXPIRED (>15m)"
-                            },
-                            color = when (activity.deliveryStatus) {
-                                DeliveryStatus.DISPATCHED_INSTANT -> NavaSuccess
-                                DeliveryStatus.DISPATCHED_REPLAYED -> NavaOnTertiary
-                                DeliveryStatus.QUEUED_OFFLINE -> Color(0xFFB45309)
-                                DeliveryStatus.FAILED_EXPIRED -> NavaError
-                            },
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
 
-                    if (activity.httpStatusCode > 0) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (activity.isSuccess) NavaSuccess.copy(alpha = 0.2f) else NavaError.copy(alpha = 0.2f)
-                        ) {
-                            Text(
-                                text = "HTTP ${activity.httpStatusCode}",
-                                color = if (activity.isSuccess) NavaSuccess else NavaError,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = if (activity.isSuccess) NavaSuccessContainer else NavaErrorContainer
+                ) {
+                    Text(
+                        text = if (activity.isSuccess) "ارسال شد" else "در انتظار / خطا",
+                        color = if (activity.isSuccess) NavaOnSuccessContainer else NavaOnErrorContainer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
                 }
             }
 
             Text(
                 text = activity.snippet,
                 fontSize = 13.sp,
-                color = NavaPrimary,
-                maxLines = 2
+                color = NavaOnSurfaceVariant,
+                maxLines = 2,
+                lineHeight = 18.sp
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                activity.matchedKeyword?.let { keyword ->
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = NavaTertiary.copy(alpha = 0.3f)
-                    ) {
-                        Text(
-                            text = keyword,
-                            fontSize = 11.sp,
-                            color = NavaOnTertiary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+            if (activity.matchedKeyword.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = NavaPrimaryContainer
+                ) {
+                    Text(
+                        text = "کلیدواژه: ${activity.matchedKeyword}",
+                        color = NavaOnPrimaryContainer,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = formatTimestamp(activity.timestamp),
-                    fontSize = 11.sp,
-                    color = NavaSecondary
-                )
             }
         }
     }
-}
-
-private fun formatTimestamp(timestamp: Long): String {
-    val seconds = (timestamp / 1000) % 60
-    val minutes = (timestamp / (1000 * 60)) % 60
-    val hours = (timestamp / (1000 * 60 * 60)) % 24
-    return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
 }

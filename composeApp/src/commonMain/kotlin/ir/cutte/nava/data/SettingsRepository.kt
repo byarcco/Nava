@@ -30,6 +30,7 @@ class SettingsRepository(
     private val keywordsKey = stringSetPreferencesKey("keywords")
     private val serviceEnabledKey = booleanPreferencesKey("service_enabled")
     private val heartbeatEnabledKey = booleanPreferencesKey("heartbeat_enabled")
+    private val oemAutostartConfiguredKey = booleanPreferencesKey("oem_autostart_configured")
     private val lastProbeStatusKey = stringPreferencesKey("last_probe_status")
     private val lastProbeTimestampKey = longPreferencesKey("last_probe_timestamp")
     private val totalDispatchedKey = longPreferencesKey("total_dispatched_count")
@@ -53,6 +54,7 @@ class SettingsRepository(
             val keywords = preferences[keywordsKey] ?: setOf("کد ورود")
             val isEnabled = preferences[serviceEnabledKey] ?: true
             val isHeartbeat = preferences[heartbeatEnabledKey] ?: true
+            val isOem = preferences[oemAutostartConfiguredKey] ?: false
             val probeStatusString = preferences[lastProbeStatusKey]
             val probeStatus = probeStatusString?.let {
                 try {
@@ -79,6 +81,7 @@ class SettingsRepository(
                 keywords = keywords,
                 isServiceEnabled = isEnabled,
                 isHeartbeatEnabled = isHeartbeat,
+                isOemAutostartConfigured = isOem,
                 lastProbeStatus = probeStatus,
                 lastProbeTimestamp = lastProbeTimestamp,
                 totalDispatchedCount = totalDispatched,
@@ -153,6 +156,12 @@ class SettingsRepository(
     suspend fun setHeartbeatEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[heartbeatEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setOemAutostartConfigured(isConfigured: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[oemAutostartConfiguredKey] = isConfigured
         }
     }
 
