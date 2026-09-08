@@ -27,6 +27,8 @@ import ir.cutte.nava.util.BatteryUtil
 import ir.cutte.nava.util.DeviceIdentifierHelper
 import ir.cutte.nava.util.NetworkUtil
 import ir.cutte.nava.util.OemIntentNavigator
+import androidx.activity.SystemBarStyle
+import android.graphics.Color as AndroidColor
 import ir.cutte.nava.util.PermissionHelper
 import ir.cutte.nava.worker.HeartbeatScheduler
 import ir.cutte.nava.worker.SmsDispatchWorker
@@ -35,7 +37,16 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                AndroidColor.parseColor("#F8FAFC"),
+                AndroidColor.parseColor("#F8FAFC")
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                AndroidColor.parseColor("#F8FAFC"),
+                AndroidColor.parseColor("#F8FAFC")
+            )
+        )
         super.onCreate(savedInstanceState)
 
         val settingsRepository = SettingsRepository(applicationContext.navaDataStore)

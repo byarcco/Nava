@@ -26,6 +26,7 @@ import ir.cutte.nava.model.ForwardingActivity
 import ir.cutte.nava.model.SmsPayload
 import ir.cutte.nava.ui.theme.NavaTheme
 import ir.cutte.nava.util.currentTimeMillis
+import ir.cutte.nava.util.formatActivityDuration
 import ir.cutte.nava.util.toPersianDigits
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,7 +63,7 @@ fun NavaApp(
     var currentTimestamp by remember { mutableStateOf(currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1000L)
+            delay(10000L)
             currentTimestamp = currentTimeMillis()
         }
     }
@@ -73,16 +74,7 @@ fun NavaApp(
         } else {
             val startTime = if (appSettings.serviceStartTimestamp > 0L) appSettings.serviceStartTimestamp else currentTimestamp
             val elapsedMillis = (currentTimestamp - startTime).coerceAtLeast(0L)
-            val hours = elapsedMillis / (1000 * 60 * 60)
-            val minutes = (elapsedMillis / (1000 * 60)) % 60
-            val seconds = (elapsedMillis / 1000) % 60
-            if (hours > 0) {
-                "${hours.toPersianDigits()} ساعت و ${minutes.toPersianDigits()} دقیقه"
-            } else if (minutes > 0) {
-                "${minutes.toPersianDigits()} دقیقه و ${seconds.toPersianDigits()} ثانیه"
-            } else {
-                "${seconds.toPersianDigits()} ثانیه"
-            }
+            formatActivityDuration(elapsedMillis)
         }
     }
 

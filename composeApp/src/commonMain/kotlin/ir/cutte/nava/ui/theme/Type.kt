@@ -66,19 +66,19 @@ fun getNavaTypography(fontFamily: FontFamily = getVazirmatnFontFamily()): Typogr
         ),
         bodyLarge = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp,
             lineHeight = 22.sp
         ),
         bodyMedium = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
             lineHeight = 19.sp
         ),
         bodySmall = TextStyle(
             fontFamily = fontFamily,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
             lineHeight = 16.sp
         ),

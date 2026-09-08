@@ -117,10 +117,10 @@ fun DashboardScreen(
                 title = {
                     Column {
                         Text(
-                            text = "«نـوا»",
+                            text = "نــوا",
                             fontFamily = getYekanFontFamily(),
                             fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
+                            fontSize = 28.sp,
                             color = NavaOnBackground
                         )
                         Text(
@@ -358,7 +358,7 @@ private fun ServiceStatusOverviewCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(13.dp)
+                            .size(10.dp)
                             .clip(CircleShape)
                             .background(
                                 if (isServiceEnabled) Color(0xFFE0F2FE).copy(alpha = pulseAlpha) else NavaSecondary

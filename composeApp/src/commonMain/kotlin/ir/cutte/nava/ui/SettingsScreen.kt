@@ -262,7 +262,7 @@ fun SettingsScreen(
                             value = deviceId,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("شناسه فنی دستگاه (device_id)") },
+                            label = { Text("شناسه یکتای دستگاه") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
@@ -280,7 +280,7 @@ fun SettingsScreen(
                                 deviceNameInput = it
                                 showDeviceSavedMessage = false
                             },
-                            label = { Text("نام نمایشی دستگاه (device_name)") },
+                            label = { Text("نام نمایشی دستگاه") },
                             placeholder = { Text("مثلاً: Samsung S23 یا گوشی دفتر") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,

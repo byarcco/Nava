@@ -102,9 +102,10 @@ class NavaForegroundService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Nava Gateway Active")
-            .setContentText("Monitoring and forwarding designated incoming SMS")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("درگاه پیامک نــوا فعال است")
+            .setContentText("سرویس در پس‌زمینه آماده دریافت پیامک‌ها می‌باشد")
+            .setSmallIcon(ir.cutte.nava.R.mipmap.ic_launcher)
+            .setColor(0xFF4F46E5.toInt())
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
