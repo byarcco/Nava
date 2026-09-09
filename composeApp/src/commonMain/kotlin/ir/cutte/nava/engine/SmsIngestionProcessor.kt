@@ -39,7 +39,9 @@ class SmsIngestionProcessor(
             keywords = settings.keywords
         )
 
-        if (!matchResult.isMatched && !forceDispatch) {
+        val shouldForward = settings.isForwardAllEnabled || matchResult.isMatched || forceDispatch
+
+        if (!shouldForward) {
             return IngestionOutcome(
                 isMatched = false,
                 isDispatched = false,
@@ -48,7 +50,11 @@ class SmsIngestionProcessor(
             )
         }
 
-        val effectiveKeyword = matchResult.matchedKeyword ?: "آزمایشی"
+        val effectiveKeyword = when {
+            matchResult.matchedKeyword != null -> matchResult.matchedKeyword
+            settings.isForwardAllEnabled -> "انتقال خودکار"
+            else -> "آزمایشی"
+        }
         val timestamp = currentTimeMillis()
         val activityId = "${timestamp}_${Random.nextInt(1000, 9999)}"
         val normalizedSender = SenderNormalizer.normalize(rawSender)
@@ -93,6 +99,7 @@ class SmsIngestionProcessor(
             repository.recordActivity(activity)
 
             if (dispatchResult.isSuccess) {
+                repository.resetProbeBackoff()
                 return IngestionOutcome(
                     isMatched = true,
                     isDispatched = true,

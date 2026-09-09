@@ -65,8 +65,11 @@ import ir.cutte.nava.model.ProbeStatus
 import ir.cutte.nava.ui.theme.AppIcons
 import ir.cutte.nava.ui.theme.NavaBackground
 import ir.cutte.nava.ui.theme.NavaErrorContainer
+import ir.cutte.nava.ui.theme.NavaGold
+import ir.cutte.nava.ui.theme.NavaGoldContainer
 import ir.cutte.nava.ui.theme.NavaOnBackground
 import ir.cutte.nava.ui.theme.NavaOnErrorContainer
+import ir.cutte.nava.ui.theme.NavaOnGoldContainer
 import ir.cutte.nava.ui.theme.NavaOnPrimary
 import ir.cutte.nava.ui.theme.NavaOnPrimaryContainer
 import ir.cutte.nava.ui.theme.NavaOnSecondaryContainer
@@ -361,7 +364,7 @@ private fun ServiceStatusOverviewCard(
                             .size(10.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isServiceEnabled) Color(0xFFE0F2FE).copy(alpha = pulseAlpha) else NavaSecondary
+                                if (isServiceEnabled) NavaGold.copy(alpha = pulseAlpha) else NavaSecondary
                             )
                     )
                     Text(
@@ -882,13 +885,18 @@ private fun ActivityItemCard(activity: ForwardingActivity) {
 
             val keyword = activity.matchedKeyword
             if (!keyword.isNullOrBlank()) {
+                val label = when {
+                    keyword == "انتقال خودکار" -> "انتقال خودکار"
+                    keyword.startsWith("WHITELIST:") -> "سرشماره: ${keyword.removePrefix("WHITELIST:")}"
+                    else -> "کلیدواژه: $keyword"
+                }
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = NavaPrimaryContainer
+                    color = NavaGoldContainer
                 ) {
                     Text(
-                        text = "کلیدواژه: $keyword",
-                        color = NavaOnPrimaryContainer,
+                        text = label,
+                        color = NavaOnGoldContainer,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)

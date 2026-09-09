@@ -28,6 +28,7 @@ class SettingsRepository(
     private val authTokenKey = stringPreferencesKey("auth_token")
     private val whitelistKey = stringSetPreferencesKey("whitelist_senders")
     private val keywordsKey = stringSetPreferencesKey("keywords")
+    private val forwardAllEnabledKey = booleanPreferencesKey("forward_all_enabled")
     private val deviceIdKey = stringPreferencesKey("device_id")
     private val deviceNameKey = stringPreferencesKey("device_name")
     private val serviceEnabledKey = booleanPreferencesKey("service_enabled")
@@ -35,6 +36,8 @@ class SettingsRepository(
     private val oemAutostartConfiguredKey = booleanPreferencesKey("oem_autostart_configured")
     private val lastProbeStatusKey = stringPreferencesKey("last_probe_status")
     private val lastProbeTimestampKey = longPreferencesKey("last_probe_timestamp")
+    private val firstFailedProbeTimestampKey = longPreferencesKey("first_failed_probe_timestamp")
+    private val currentProbeIntervalMinutesKey = longPreferencesKey("current_probe_interval_minutes")
     private val totalDispatchedKey = longPreferencesKey("total_dispatched_count")
     private val serviceStartTimestampKey = longPreferencesKey("service_start_timestamp")
     private val recentActivitiesKey = stringPreferencesKey("recent_activities_json")
@@ -50,10 +53,11 @@ class SettingsRepository(
         }
         .map { preferences ->
             val primaryUrl = preferences[primaryWorkerUrlKey] ?: "https://sms.cutte.ir"
-            val secondaryUrl = preferences[secondaryWorkerUrlKey] ?: "https://sms-pipeline.imartrioss.workers.dev"
+            val secondaryUrl = preferences[secondaryWorkerUrlKey] ?: "https://nava.imartrioss.workers.dev"
             val authToken = preferences[authTokenKey] ?: "85d8ecf6-5641-451a-a41d-20927eeccd28"
             val whitelist = preferences[whitelistKey] ?: setOf("Raja.ir")
             val keywords = preferences[keywordsKey] ?: setOf("کد ورود", "کد تایید", "کد تائید")
+            val isForwardAll = preferences[forwardAllEnabledKey] ?: false
             val deviceId = preferences[deviceIdKey] ?: ""
             val deviceName = preferences[deviceNameKey] ?: ""
             val isEnabled = preferences[serviceEnabledKey] ?: true
@@ -68,6 +72,8 @@ class SettingsRepository(
                 }
             } ?: ProbeStatus.CONNECTED_PRIMARY
             val lastProbeTimestamp = preferences[lastProbeTimestampKey] ?: 0L
+            val firstFailedProbe = preferences[firstFailedProbeTimestampKey] ?: 0L
+            val currentInterval = preferences[currentProbeIntervalMinutesKey] ?: 30L
             val totalDispatched = preferences[totalDispatchedKey] ?: 0L
             val startTimestamp = preferences[serviceStartTimestampKey] ?: 0L
             val activitiesJson = preferences[recentActivitiesKey] ?: "[]"
@@ -83,6 +89,7 @@ class SettingsRepository(
                 authToken = authToken,
                 whitelistSenders = whitelist,
                 keywords = keywords,
+                isForwardAllEnabled = isForwardAll,
                 deviceId = deviceId,
                 deviceName = deviceName,
                 isServiceEnabled = isEnabled,
@@ -90,6 +97,8 @@ class SettingsRepository(
                 isOemAutostartConfigured = isOem,
                 lastProbeStatus = probeStatus,
                 lastProbeTimestamp = lastProbeTimestamp,
+                firstFailedProbeTimestamp = firstFailedProbe,
+                currentProbeIntervalMinutes = currentInterval,
                 totalDispatchedCount = totalDispatched,
                 serviceStartTimestamp = startTimestamp,
                 recentActivities = activities
@@ -168,6 +177,12 @@ class SettingsRepository(
         }
     }
 
+    suspend fun setForwardAllEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[forwardAllEnabledKey] = enabled
+        }
+    }
+
     suspend fun setServiceEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[serviceEnabledKey] = enabled
@@ -195,6 +210,20 @@ class SettingsRepository(
         dataStore.edit { preferences ->
             preferences[lastProbeStatusKey] = status.name
             preferences[lastProbeTimestampKey] = timestamp
+        }
+    }
+
+    suspend fun updateProbeBackoff(firstFailedProbeTimestamp: Long, intervalMinutes: Long) {
+        dataStore.edit { preferences ->
+            preferences[firstFailedProbeTimestampKey] = firstFailedProbeTimestamp
+            preferences[currentProbeIntervalMinutesKey] = intervalMinutes
+        }
+    }
+
+    suspend fun resetProbeBackoff() {
+        dataStore.edit { preferences ->
+            preferences[firstFailedProbeTimestampKey] = 0L
+            preferences[currentProbeIntervalMinutesKey] = 30L
         }
     }
 

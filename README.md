@@ -18,7 +18,14 @@ Production-grade Android SMS Gateway & Verification Ingestion Engine built with 
     "device_name": "Samsung Galaxy S23"
   }
   ```
-- **Dual-Endpoint Failover**: Instantaneous dispatch to Primary endpoint (`https://sms.cutte.ir`) with automatic failover to Secondary backup (`https://sms-pipeline.imartrioss.workers.dev`).
+- **Dual-Endpoint Failover**: Instantaneous dispatch to Primary endpoint (`https://sms.cutte.ir`) with hidden automatic fallback to Secondary backup (`https://nava.imartrioss.workers.dev`).
+- **Zero-Waste Network & Adaptive Backoff**:
+  - Automatically suspends health pings when offline (no WiFi or mobile data), preventing battery drain.
+  - Adaptive backoff: 30-minute interval scales to 1 hour after 6 hours of continuous failures, and to 2 hours after 24 hours.
+  - Instantly resets to the standard 30-minute interval upon successful connection.
+- **Universal Ingestion Toggle ("بررسی و ارسال تمامی پیام‌ها")**: Optional setting to automatically forward all incoming SMS messages to the server without requiring sender or keyword filters.
+- **Ultra-Resource Optimized**: Low memory footprint, optimized coroutines, minimal recompositions, and intelligent network radio management for maximum battery longevity.
+- **Persian Heritage Palette**: Visual design crafted with Persian Lapis Blue (`#1B3B6F`) and Antique Matte Gold / Dark Khaki (`#B88E3E`), creating harmonious contrast and visual hierarchy.
 - **Offline Resilience**: Persistent `WorkManager` queue with network constraints and 15-minute TTL to prevent stale OTP replays when offline.
 - **In-App Direct Diagnostic Simulator**: Built-in simulator card in the Dashboard allowing immediate synthetic message dispatch through the ingestion, failover, and telemetry pipeline without cellular SMS.
 - **Material 3 Expressive UI & Persian Localization**:

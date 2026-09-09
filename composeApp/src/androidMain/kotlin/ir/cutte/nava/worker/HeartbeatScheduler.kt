@@ -12,12 +12,13 @@ object HeartbeatScheduler {
 
     private const val WORK_NAME = "nava_periodic_heartbeat"
 
-    fun schedule(context: Context) {
+    fun schedule(context: Context, intervalMinutes: Long = 30L) {
+        val effectiveInterval = intervalMinutes.coerceAtLeast(15L)
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        val request = PeriodicWorkRequestBuilder<HeartbeatWorker>(30, TimeUnit.MINUTES)
+        val request = PeriodicWorkRequestBuilder<HeartbeatWorker>(effectiveInterval, TimeUnit.MINUTES)
             .setConstraints(constraints)
             .build()
 

@@ -76,7 +76,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     primaryWorkerUrl: String,
-    secondaryWorkerUrl: String,
     authToken: String,
     whitelistSenders: Set<String>,
     keywords: Set<String>,
@@ -84,8 +83,8 @@ fun SettingsScreen(
     deviceName: String,
     isServiceEnabled: Boolean,
     isHeartbeatEnabled: Boolean,
+    isForwardAllEnabled: Boolean,
     onUpdatePrimaryWorkerUrl: (String) -> Unit,
-    onUpdateSecondaryWorkerUrl: (String) -> Unit,
     onUpdateAuthToken: (String) -> Unit,
     onUpdateDeviceName: (String) -> Unit,
     onAddWhitelist: (String) -> Unit,
@@ -94,12 +93,12 @@ fun SettingsScreen(
     onRemoveKeyword: (String) -> Unit,
     onToggleService: (Boolean) -> Unit,
     onToggleHeartbeat: (Boolean) -> Unit,
+    onToggleForwardAll: (Boolean) -> Unit,
     onDispatchTestPayload: suspend () -> DispatchResult,
     onNavigateBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     var primaryUrlInput by remember(primaryWorkerUrl) { mutableStateOf(primaryWorkerUrl) }
-    var secondaryUrlInput by remember(secondaryWorkerUrl) { mutableStateOf(secondaryWorkerUrl) }
     var tokenInput by remember(authToken) { mutableStateOf(authToken) }
     var deviceNameInput by remember(deviceName) { mutableStateOf(deviceName) }
     var senderInput by remember { mutableStateOf("") }
@@ -350,7 +349,7 @@ fun SettingsScreen(
                             color = NavaOnSurface
                         )
                         Text(
-                            text = "آدرس‌های دریافت پیامک و کلید احراز هویت اختصاصی",
+                            text = "آدرس دریافت پیامک و کلید احراز هویت اختصاصی",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = NavaSecondary
@@ -360,21 +359,6 @@ fun SettingsScreen(
                             value = primaryUrlInput,
                             onValueChange = { primaryUrlInput = it },
                             label = { Text("آدرس سرور اصلی") },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = NavaSurfaceVariant,
-                                unfocusedContainerColor = NavaSurfaceVariant,
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent
-                            )
-                        )
-
-                        OutlinedTextField(
-                            value = secondaryUrlInput,
-                            onValueChange = { secondaryUrlInput = it },
-                            label = { Text("آدرس سرور پشتیبان") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
@@ -404,7 +388,6 @@ fun SettingsScreen(
                         Button(
                             onClick = {
                                 onUpdatePrimaryWorkerUrl(primaryUrlInput)
-                                onUpdateSecondaryWorkerUrl(secondaryUrlInput)
                                 onUpdateAuthToken(tokenInput)
                                 showSavedMessage = true
                             },
@@ -541,6 +524,52 @@ fun SettingsScreen(
                         modifier = Modifier.padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "بررسی و ارسال تمامی پیام‌ها",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = NavaOnSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "ارسال بی‌درنگ تمام پیامک‌های دریافتی دستگاه به سرور بدون نیاز به فیلتر",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = NavaSecondary
+                                )
+                            }
+                            Switch(
+                                checked = isForwardAllEnabled,
+                                onCheckedChange = onToggleForwardAll,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = NavaOnPrimary,
+                                    checkedTrackColor = NavaPrimary,
+                                    uncheckedThumbColor = NavaSecondary,
+                                    uncheckedTrackColor = NavaOutlineVariant
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = NavaSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
                         Text(
                             text = "فرستنده‌های معتبر",
                             fontWeight = FontWeight.Bold,
@@ -554,6 +583,22 @@ fun SettingsScreen(
                             color = NavaSecondary
                         )
 
+                        if (isForwardAllEnabled) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = NavaSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "با فعال بودن گزینه بررسی و ارسال تمامی پیام‌ها، این بخش غیرفعال است و کلیه پیامک‌ها خودکار منتقل می‌شوند.",
+                                    color = NavaSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -564,6 +609,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = senderInput,
                                 onValueChange = { senderInput = it },
+                                enabled = !isForwardAllEnabled,
                                 placeholder = { Text("مثلاً: Raja.ir، 0912، 1000", fontSize = 13.sp) },
                                 modifier = Modifier
                                     .weight(1f)
@@ -573,8 +619,10 @@ fun SettingsScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = NavaSurfaceVariant,
                                     unfocusedContainerColor = NavaSurfaceVariant,
+                                    disabledContainerColor = NavaSurfaceVariant.copy(alpha = 0.5f),
                                     focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent
+                                    unfocusedBorderColor = Color.Transparent,
+                                    disabledBorderColor = Color.Transparent
                                 )
                             )
 
@@ -586,13 +634,16 @@ fun SettingsScreen(
                                         senderInput = ""
                                     }
                                 },
+                                enabled = !isForwardAllEnabled,
                                 modifier = Modifier
                                     .height(52.dp)
                                     .padding(vertical = 0.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NavaPrimary,
-                                    contentColor = NavaOnPrimary
+                                    contentColor = NavaOnPrimary,
+                                    disabledContainerColor = NavaOutlineVariant,
+                                    disabledContentColor = NavaSecondary
                                 )
                             ) {
                                 Text("افزودن", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -608,7 +659,7 @@ fun SettingsScreen(
                                 whitelistSenders.forEach { sender ->
                                     Surface(
                                         shape = RoundedCornerShape(50),
-                                        color = NavaSecondaryContainer
+                                        color = if (isForwardAllEnabled) NavaSecondaryContainer.copy(alpha = 0.5f) else NavaSecondaryContainer
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -621,19 +672,21 @@ fun SettingsScreen(
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(18.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable { onRemoveWhitelist(sender) },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = AppIcons.Close,
-                                                    contentDescription = "حذف",
-                                                    tint = NavaOnSecondaryContainer,
-                                                    modifier = Modifier.size(12.dp)
-                                                )
+                                            if (!isForwardAllEnabled) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(18.dp)
+                                                        .clip(CircleShape)
+                                                        .clickable { onRemoveWhitelist(sender) },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = AppIcons.Close,
+                                                        contentDescription = "حذف",
+                                                        tint = NavaOnSecondaryContainer,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -668,6 +721,22 @@ fun SettingsScreen(
                             color = NavaSecondary
                         )
 
+                        if (isForwardAllEnabled) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = NavaSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "با فعال بودن گزینه بررسی و ارسال تمامی پیام‌ها، نیازی به تعیین کلیدواژه نیست و تمامی پیام‌ها ارسال خواهند شد.",
+                                    color = NavaSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        }
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -678,6 +747,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = keywordInput,
                                 onValueChange = { keywordInput = it },
+                                enabled = !isForwardAllEnabled,
                                 placeholder = { Text("مثلاً: کد ورود، رمز موقت", fontSize = 13.sp) },
                                 modifier = Modifier
                                     .weight(1f)
@@ -687,8 +757,10 @@ fun SettingsScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = NavaSurfaceVariant,
                                     unfocusedContainerColor = NavaSurfaceVariant,
+                                    disabledContainerColor = NavaSurfaceVariant.copy(alpha = 0.5f),
                                     focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent
+                                    unfocusedBorderColor = Color.Transparent,
+                                    disabledBorderColor = Color.Transparent
                                 )
                             )
 
@@ -700,13 +772,16 @@ fun SettingsScreen(
                                         keywordInput = ""
                                     }
                                 },
+                                enabled = !isForwardAllEnabled,
                                 modifier = Modifier
                                     .height(52.dp)
                                     .padding(vertical = 0.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NavaPrimary,
-                                    contentColor = NavaOnPrimary
+                                    contentColor = NavaOnPrimary,
+                                    disabledContainerColor = NavaOutlineVariant,
+                                    disabledContentColor = NavaSecondary
                                 )
                             ) {
                                 Text("افزودن", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -722,7 +797,7 @@ fun SettingsScreen(
                                 keywords.forEach { keyword ->
                                     Surface(
                                         shape = RoundedCornerShape(50),
-                                        color = NavaPrimaryContainer
+                                        color = if (isForwardAllEnabled) NavaPrimaryContainer.copy(alpha = 0.5f) else NavaPrimaryContainer
                                     ) {
                                         Row(
                                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -735,19 +810,21 @@ fun SettingsScreen(
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.SemiBold
                                             )
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(18.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable { onRemoveKeyword(keyword) },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = AppIcons.Close,
-                                                    contentDescription = "حذف",
-                                                    tint = NavaOnPrimaryContainer,
-                                                    modifier = Modifier.size(12.dp)
-                                                )
+                                            if (!isForwardAllEnabled) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(18.dp)
+                                                        .clip(CircleShape)
+                                                        .clickable { onRemoveKeyword(keyword) },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = AppIcons.Close,
+                                                        contentDescription = "حذف",
+                                                        tint = NavaOnPrimaryContainer,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

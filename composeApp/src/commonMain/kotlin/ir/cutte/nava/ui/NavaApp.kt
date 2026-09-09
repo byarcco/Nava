@@ -63,7 +63,7 @@ fun NavaApp(
     var currentTimestamp by remember { mutableStateOf(currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(10000L)
+            delay(60000L)
             currentTimestamp = currentTimeMillis()
         }
     }
@@ -126,7 +126,6 @@ fun NavaApp(
                     NavaScreen.Settings -> {
                         SettingsScreen(
                             primaryWorkerUrl = appSettings.primaryWorkerUrl,
-                            secondaryWorkerUrl = appSettings.secondaryWorkerUrl,
                             authToken = appSettings.authToken,
                             whitelistSenders = appSettings.whitelistSenders,
                             keywords = appSettings.keywords,
@@ -134,14 +133,10 @@ fun NavaApp(
                             deviceName = appSettings.deviceName.ifBlank { deviceInfo },
                             isServiceEnabled = appSettings.isServiceEnabled,
                             isHeartbeatEnabled = appSettings.isHeartbeatEnabled,
+                            isForwardAllEnabled = appSettings.isForwardAllEnabled,
                             onUpdatePrimaryWorkerUrl = { url ->
                                 coroutineScope.launch {
                                     settingsRepository.updatePrimaryWorkerUrl(url)
-                                }
-                            },
-                            onUpdateSecondaryWorkerUrl = { url ->
-                                coroutineScope.launch {
-                                    settingsRepository.updateSecondaryWorkerUrl(url)
                                 }
                             },
                             onUpdateAuthToken = { token ->
@@ -185,6 +180,11 @@ fun NavaApp(
                                     onToggleHeartbeatScheduler(enabled)
                                 }
                             },
+                            onToggleForwardAll = { enabled ->
+                                coroutineScope.launch {
+                                    settingsRepository.setForwardAllEnabled(enabled)
+                                }
+                            },
                             onDispatchTestPayload = {
                                 val code = "123456"
                                 val testPayload = SmsPayload(
@@ -206,6 +206,9 @@ fun NavaApp(
                                     appSettings.authToken,
                                     testPayload
                                 )
+                                if (result.isSuccess) {
+                                    settingsRepository.resetProbeBackoff()
+                                }
                                 val activity = ForwardingActivity(
                                     id = "${currentTimeMillis()}_${Random.nextInt(1000, 9999)}",
                                     timestamp = currentTimeMillis(),

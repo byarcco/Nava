@@ -39,12 +39,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
-                AndroidColor.parseColor("#F8FAFC"),
-                AndroidColor.parseColor("#F8FAFC")
+                AndroidColor.parseColor("#F8F9FA"),
+                AndroidColor.parseColor("#F8F9FA")
             ),
             navigationBarStyle = SystemBarStyle.light(
-                AndroidColor.parseColor("#F8FAFC"),
-                AndroidColor.parseColor("#F8FAFC")
+                AndroidColor.parseColor("#F8F9FA"),
+                AndroidColor.parseColor("#F8F9FA")
             )
         )
         super.onCreate(savedInstanceState)

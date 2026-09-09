@@ -105,7 +105,7 @@ class NavaForegroundService : Service() {
             .setContentTitle("درگاه پیامک نــوا فعال است")
             .setContentText("سرویس در پس‌زمینه آماده دریافت پیامک‌ها می‌باشد")
             .setSmallIcon(ir.cutte.nava.R.mipmap.ic_launcher)
-            .setColor(0xFF4F46E5.toInt())
+            .setColor(0xFF1B3B6F.toInt())
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

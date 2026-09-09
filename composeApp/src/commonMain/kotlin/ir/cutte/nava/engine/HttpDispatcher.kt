@@ -107,5 +107,6 @@ class HttpDispatcher(
 
     companion object {
         const val DEFAULT_AUTH_TOKEN = "85d8ecf6-5641-451a-a41d-20927eeccd28"
+        const val DEFAULT_FALLBACK_URL = "https://nava.imartrioss.workers.dev"
     }
 }
